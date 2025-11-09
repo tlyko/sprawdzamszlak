@@ -9,6 +9,31 @@ This infrastructure is managed entirely as code (IaC) using Terraform. It levera
 * **Remote State Backend:** Uses an S3 bucket to securely store and version the Terraform state.
 * **Default Tags:** All resources are automatically tagged with `Project`, `ManagedBy`, and `Environment` for cost tracking and organization.
 
+## 📦 Infrastructure Components
+
+The following AWS resources are managed by this Terraform configuration:
+
+### API Gateway (HTTP API)
+* Modern HTTP API endpoint with CORS support
+* Default stage with auto-deployment
+* Integration with Lambda function
+
+### Lambda Function
+* Python 3.13 runtime
+* Handles data storage operations
+* Environment variables for DynamoDB configuration
+
+### DynamoDB
+* Table: `sprawdzamszlak-data`
+* Pay-per-request billing mode
+* String partition key: `id`
+
+### IAM
+* Lambda execution role with:
+  * DynamoDB access permissions (read/write)
+  * CloudWatch Logs permissions
+* Resource-specific IAM policies following least privilege principle
+
 ---
 
 ## 🚀 Prerequisites
@@ -36,3 +61,45 @@ Before running any Terraform commands, you must authenticate with AWS to get tem
 
 ```bash
 aws sso login
+```
+
+### 2. Initialize Terraform
+
+Initialize the Terraform working directory and download required providers:
+
+```bash
+terraform init
+```
+
+### 3. Review Changes
+
+Before applying changes, review the planned modifications:
+
+```bash
+terraform plan
+```
+
+### 4. Apply Changes
+
+Deploy the infrastructure changes:
+
+```bash
+terraform apply
+```
+
+When prompted, review the changes and type `yes` to proceed.
+
+### 5. Clean Up
+
+To destroy all resources when they're no longer needed:
+
+```bash
+terraform destroy
+```
+
+## 📝 Important Notes
+
+* The infrastructure is deployed to the `eu-west-1` region
+* State is stored in an S3 bucket named `tfstate-214598715232-eu-west-1`
+* The API endpoint URL will be displayed in the outputs after applying
+* All resources are tagged with the project name and managed-by tags
