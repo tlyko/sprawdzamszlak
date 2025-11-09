@@ -10,4 +10,5 @@ locals {
       }
     ]
   }
+  app_name = "sprawdzamszlak-app"
 }

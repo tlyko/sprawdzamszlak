@@ -1,0 +1,52 @@
+
+data "aws_iam_policy_document" "sprawdzamszlak_db_policy_doc" {
+  statement {
+    sid    = "AllowAppToAccessTable"
+    effect = "Allow"
+    
+    actions = [
+      "dynamodb:GetItem",
+      "dynamodb:PutItem",
+      "dynamodb:UpdateItem",
+      "dynamodb:DeleteItem",
+      "dynamodb:Query",
+      "dynamodb:Scan"
+    ]
+
+    resources = [
+      aws_dynamodb_table.sprawdzamszlak_table.arn,
+    ]
+  }
+}
+
+resource "aws_iam_policy" "sprawdzamszlak_db_policy" {
+  name        = "${local.app_name}-db-access-policy"
+  description = "Allows read/write access to the sprawdzamszlak-data table"
+  policy      = data.aws_iam_policy_document.sprawdzamszlak_db_policy_doc.json
+}
+
+data "aws_iam_policy_document" "lambda_trust_policy_doc" {
+  statement {
+    effect = "Allow"
+    principals {
+      type        = "Service"
+      identifiers = ["lambda.amazonaws.com"]
+    }
+    actions = ["sts:AssumeRole"]
+  }
+}
+resource "aws_iam_role" "sprawdzamszlak_app_role" {
+  name               = "${local.app_name}-role"
+  description        = "IAM Role for the sprawdzamszlak application (Lambda)"
+  assume_role_policy = data.aws_iam_policy_document.lambda_trust_policy_doc.json
+}
+
+resource "aws_iam_role_policy_attachment" "db_policy_attachment" {
+  role       = aws_iam_role.sprawdzamszlak_app_role.name
+  policy_arn = aws_iam_policy.sprawdzamszlak_db_policy.arn
+}
+
+resource "aws_iam_role_policy_attachment" "lambda_logging_attachment" {
+  role       = aws_iam_role.sprawdzamszlak_app_role.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+}
