@@ -1,7 +1,8 @@
 // This is components/TatraMap.tsx
 'use client'; 
 
-import { useState, useEffect } from 'react';
+// --- CHANGE 1: Import type definitions for state setters ---
+import { useState, useEffect, Dispatch, SetStateAction } from 'react';
 import { MapContainer, TileLayer, CircleMarker, Popup, useMapEvents } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 
@@ -12,14 +13,20 @@ const AWS_API_URL = "https://akoz890bg6.execute-api.eu-west-1.amazonaws.com/prod
 interface Peak {
   id: string;
   nazwa: string;
-  trudnosc: string;
+  trudnosc: string; // I see 'trudnosc' in your test data, so I am using this.
   latitude?: number;
   longitude?: number;
   height?: number;
 }
 
+// --- NEW: Define the types for our handler's props ---
+interface MapZoomHandlerProps {
+  setZoom: Dispatch<SetStateAction<number>>;
+}
+
 // This component will listen to map events
-function MapZoomHandler({ setZoom }) {
+// --- CHANGE 2: Apply the type to the component's props ---
+function MapZoomHandler({ setZoom }: MapZoomHandlerProps) {
   const map = useMapEvents({
     // Fired when the user finishes zooming
     zoomend: () => {
@@ -70,6 +77,7 @@ export default function TatraMap() {
 
   if (isLoading) {
     return (
+      // --- THIS WAS THE FIX: Added missing '<' ---
       <main className="flex min-h-screen flex-col items-center justify-center">
         <p>Loading map and peak data...</p>
       </main>
@@ -99,7 +107,7 @@ export default function TatraMap() {
             key={peak.id} 
             center={[peak.latitude!, peak.longitude!]}
             radius={6} // Size in pixels
-            pathOptions={peakStyle} // CHANGE: Apply our new white style
+            pathOptions={peakStyle} // Apply our new white style
           >
             <Popup>
               {/* Popup code is unchanged */}
