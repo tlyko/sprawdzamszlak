@@ -2,39 +2,57 @@
 
 import { useState, useEffect } from 'react';
 
-const WORKER_URL = "https://gorski-agent.tlyko94.workers.dev";
+// IMPORTANT: Paste your URL from `terraform output` here
+const AWS_API_URL = "https://9pbk553btj.execute-api.eu-west-1.amazonaws.com"; 
 
 export default function Home() {
-  const [message, setMessage] = useState('Łączenie z API...');
+  // Change state: 'message' (text) to 'data' (will hold JSON data)
+  const [data, setData] = useState<any>('Connecting to AWS API...');
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     async function fetchData() {
       try {
-        const response = await fetch(WORKER_URL);
+        // Use the new URL
+        const response = await fetch(AWS_API_URL); 
+        
         if (!response.ok) {
-          throw new Error('Błąd sieci');
+          throw new Error(`Network error: ${response.statusText}`);
         }
-        const text = await response.text();
-        setMessage(text);
+
+        // CHANGE: Parse the response as JSON, not text
+        const jsonData = await response.json();
+        setData(jsonData); // Save the JSON data in state
+
       } catch (error) {
-        console.error('Nie udało się pobrać danych:', error);
-        setMessage('Nie udało się połączyć z API :(');
+        console.error('Failed to fetch data from AWS:', error);
+        setData({ error: `Failed to connect to API: ${error}` });
+      } finally {
+        setIsLoading(false);
       }
     }
 
     fetchData();
-  }, []);
+  }, []); // Empty array [] means "run only once"
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center p-24">
+      {/* This is your brand name, you can change it if you like */}
       <h1 className="text-4xl font-bold mb-8">Sprawdzam Szlak</h1>
-      <div className="p-6 bg-gray-100 rounded-lg shadow-md">
+      
+      <div className="p-6 bg-gray-100 rounded-lg shadow-md w-full max-w-2xl">
         <p className="text-lg text-gray-800">
-          Odpowiedź z Twojego backendu (Cloudflare Worker):
+          Response from your backend (AWS Lambda + API Gateway):
         </p>
-        <p className="text-2xl font-semibold text-blue-600 mt-2">
-          {message}
-        </p>
+        
+        {/* Display data in <pre> to nicely format the JSON.
+          This is just a test to see if the data is arriving.
+        */}
+        <pre className="text-sm bg-white p-4 mt-4 rounded overflow-auto">
+          {isLoading 
+            ? "Fetching data..." 
+            : JSON.stringify(data, null, 2)}
+        </pre>
       </div>
     </main>
   );
