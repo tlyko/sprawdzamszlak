@@ -15,6 +15,18 @@ data "aws_iam_policy_document" "sprawdzamszlak_db_policy_doc" {
 
     resources = [
       aws_dynamodb_table.sprawdzamszlak_table.arn,
+      aws_dynamodb_table.sprawdzamszlak_routes_table.arn,
+    ]
+  }
+
+  statement {
+    sid    = "AllowAppToReadGeoJSON"
+    effect = "Allow"
+    actions = [
+      "s3:GetObject"
+    ]
+    resources = [
+      "${aws_s3_bucket.geojson_bucket.arn}/trails/*",
     ]
   }
 }

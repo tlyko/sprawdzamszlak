@@ -17,6 +17,8 @@ resource "aws_lambda_function" "sprawdzamszlak_lambda" {
   environment {
     variables = {
       DYNAMODB_TABLE_NAME = local.sprawdzamszlak_table.name
+      DYNAMODB_ROUTES_TABLE_NAME = local.sprawdzamszlak_routes_table.name
+      S3_BUCKET_NAME           = aws_s3_bucket.geojson_bucket.id
     }
   }
 }
@@ -53,32 +55,42 @@ resource "aws_apigatewayv2_route" "post_route" {
   target    = "integrations/${aws_apigatewayv2_integration.lambda_integration.id}"
 }
 
+resource "aws_apigatewayv2_route" "get_routes_route" {
+  api_id = aws_apigatewayv2_api.http_api.id
+  route_key = "GET /routes"
+  target    = "integrations/${aws_apigatewayv2_integration.lambda_integration.id}"
+}
+
+resource "aws_apigatewayv2_deployment" "main_deployment" {
+  api_id = aws_apigatewayv2_api.http_api.id
+
+  triggers = {
+    redeployment_hash = md5(jsonencode([
+      aws_apigatewayv2_route.get_route,
+      aws_apigatewayv2_route.post_route,
+      aws_apigatewayv2_route.get_routes_route,
+      aws_apigatewayv2_integration.lambda_integration
+    ]))
+  }
+
+  lifecycle {
+    create_before_destroy = true
+  }
+}
+
 resource "aws_apigatewayv2_stage" "prod_stage" {
   api_id = aws_apigatewayv2_api.http_api.id
   name   = "prod"
   
-  auto_deploy = true
+  deployment_id = aws_apigatewayv2_deployment.main_deployment.id
+}
+
+resource "aws_lambda_permission" "api_gateway_permission" {
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.sprawdzamszlak_lambda.function_name
+  principal     = "apigateway.amazonaws.com"
   
-  depends_on = [
-    aws_apigatewayv2_route.get_route,
-    aws_apigatewayv2_route.post_route
-  ]
-}
-
-resource "aws_lambda_permission" "api_gateway_permission_get" {
-  action        = "lambda:InvokeFunction"
-  function_name = aws_lambda_function.sprawdzamszlak_lambda.function_name
-  principal     = "apigateway.amazonaws.com"
-
-  source_arn = "${aws_apigatewayv2_api.http_api.execution_arn}/${aws_apigatewayv2_stage.prod_stage.name}/GET/"
-}
-
-resource "aws_lambda_permission" "api_gateway_permission_post" {
-  action        = "lambda:InvokeFunction"
-  function_name = aws_lambda_function.sprawdzamszlak_lambda.function_name
-  principal     = "apigateway.amazonaws.com"
-
-  source_arn = "${aws_apigatewayv2_api.http_api.execution_arn}/${aws_apigatewayv2_stage.prod_stage.name}/POST/"
+  source_arn = "${aws_apigatewayv2_api.http_api.execution_arn}/${aws_apigatewayv2_stage.prod_stage.name}/*/*"
 }
 
 output "api_endpoint" {
