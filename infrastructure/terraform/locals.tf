@@ -299,6 +299,11 @@ routes = {
       name  = "Baranie Rogi (zapis GPX)"
       type  = "off-piste"
       filename = "baranie_rogi.geojson"
+    },
+    lodowa_kopa = {
+      name  = "Lodowa Kopa (trasa pozaszlakowa)"
+      type  = "off-piste"
+      filename = "lodowa_kopa.geojson"
     }
   }
 }
