@@ -267,7 +267,7 @@ routes = {
     },
     "krywan_gpx" = {
       name  = "Krywań (zapis GPX)"
-      type  = "off-piste"
+      type  = "piste"
       filename = "krywan.geojson"
     },
     "konczysta_gpx" = {
