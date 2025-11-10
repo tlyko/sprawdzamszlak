@@ -182,13 +182,123 @@ locals {
       height    = "2602",
       description_html = "Niższy wierzchołek w masywie Lodowego Szczytu."
     }
+    "szatan" = {
+      nazwa     = "Szatan (Satan)",
+      trudnosc  = "Tylko z przewodnikiem",
+      trudnosc_wspinaczkowa = "I / II",
+      latitude  = "49.1600",
+      longitude = "20.0483",
+      height    = "2421",
+      description_html = "Najwyższy szczyt w Grani Baszt, dostępny pozaszlakowo.",
+      wiki_url  = "https://pl.wikipedia.org/wiki/Szatan_(szczyt)"
+    },
+    "swistowy_szczyt" = {
+      nazwa     = "Świstowy Szczyt (Svišťový štít)",
+      trudnosc  = "Tylko z przewodnikiem",
+      trudnosc_wspinaczkowa = "0+",
+      latitude  = "49.1911",
+      longitude = "20.1706",
+      height    = "2418",
+      description_html = "Położony między Doliną Staroleśną a Doliną Świstową.",
+      wiki_url  = "https://pl.wikipedia.org/wiki/%C5%9Awistowy_Szczyt"
+    },
+    "mieguszowiecki_szczyt_czarny" = {
+      nazwa     = "Mięguszowiecki Szczyt Czarny",
+      trudnosc  = "Tylko z przewodnikiem / taternicko",
+      trudnosc_wspinaczkowa = "I",
+      latitude  = "49.1864",
+      longitude = "20.0631",
+      height    = "2410",
+      description_html = "Wschodni z trzech Mięguszowieckich Szczytów.",
+      wiki_url  = "https://pl.wikipedia.org/wiki/Mi%C4%99guszowiecki_Szczyt_Czarny"
+    },
+    "jaworowy_szczyt" = {
+      nazwa     = "Jaworowy Szczyt (Javorový štít)",
+      trudnosc  = "Tylko z przewodnikiem",
+      trudnosc_wspinaczkowa = "II",
+      latitude  = "49.1969",
+      longitude = "20.1656",
+      height    = "2417",
+      description_html = "Potężny szczyt w głównej grani Tatr.",
+      wiki_url  = "https://pl.wikipedia.org/wiki/Jaworowy_Szczyt"
+    },
+    "furkot" = {
+      nazwa     = "Furkot (Furkotský štít)",
+      trudnosc  = "Tylko z przewodnikiem",
+      trudnosc_wspinaczkowa = "I",
+      latitude  = "49.1672",
+      longitude = "20.0197",
+      height    = "2403",
+      description_html = "Zwornikowy szczyt w bocznej grani Krywania.",
+      wiki_url  = "https://pl.wikipedia.org/wiki/Furkot_(szczyt)"
+    },
+    "cubryna" = {
+      nazwa     = "Cubryna (Čubrina)",
+      trudnosc  = "Tylko z przewodnikiem / taternicko",
+      trudnosc_wspinaczkowa = "I",
+      latitude  = "49.1825",
+      longitude = "20.0556",
+      height    = "2376",
+      description_html = "Szczyt w głównej grani Tatr, blisko Mięguszowieckich Szczytów.",
+      wiki_url  = "https://pl.wikipedia.org/wiki/Cubryna"
+    }
   }
 
-  routes = {
-    "lodowa_kopa" = {
-      name  = "Lodowa Kopa (trasa pozaszlakowa)"
+routes = {
+    "vysoka" = {
+      name  = "Wysoka (trasa pozaszlakowa)"
       type  = "off-piste"
-      filename = "lodowa_kopa.geojson"
+      filename = "vysoka.geojson"
     },
+    "szatan" = {
+      name  = "Szatan (trasa pozaszlakowa)"
+      type  = "off-piste"
+      filename = "szatan.geojson"
+    },
+    "swistowy_szczyt" = {
+      name  = "Świstowy Szczyt (trasa pozaszlakowa)"
+      type  = "off-piste"
+      filename = "swistowy_szczyt.geojson"
+    },
+    "mieguszowiecki_szczyt_czarny" = {
+      name  = "Mięguszowiecki Szczyt Czarny (trasa pozaszlakowa)"
+      type  = "off-piste"
+      filename = "mieguszowiecki_szczyt_czarny.geojson"
+    },
+    "krywan_gpx" = {
+      name  = "Krywań (zapis GPX)"
+      type  = "off-piste"
+      filename = "krywan.geojson"
+    },
+    "konczysta_gpx" = {
+      name  = "Kończysta (zapis GPX)"
+      type  = "off-piste"
+      filename = "konczysta.geojson"
+    },
+    "kiezmarski_szczyt_gpx" = {
+      name  = "Kieżmarski Szczyt (zapis GPX)"
+      type  = "off-piste"
+      filename = "kiezmarski_szczyt.geojson"
+    },
+    "jaworowy_szczyt" = {
+      name  = "Jaworowy Szczyt (trasa pozaszlakowa)"
+      type  = "off-piste"
+      filename = "jaworowy_szczyt.geojson"
+    },
+    "furkot" = {
+      name  = "Furkot (trasa pozaszlakowa)"
+      type  = "off-piste"
+      filename = "furkot.geojson"
+    },
+    "cubryna" = {
+      name  = "Cubryna (trasa pozaszlakowa)"
+      type  = "off-piste"
+      filename = "cubryna.geojson"
+    },
+    "baranie_rogi_gpx" = {
+      name  = "Baranie Rogi (zapis GPX)"
+      type  = "off-piste"
+      filename = "baranie_rogi.geojson"
+    }
   }
 }
