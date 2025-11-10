@@ -2,18 +2,27 @@
 import json
 import boto3
 import os
+from botocore.config import Config
 
-# Create boto3 clients ONCE (outside the handler) for performance
+MY_REGION = os.environ.get('MY_AWS_REGION')
+
+if not MY_REGION:
+    raise RuntimeError("Critical error: MY_AWS_REGION environment variable is not set.")
+
+s3_client = boto3.client(
+    's3',
+    region_name=MY_REGION,
+    config=Config(signature_version='s3v4')
+)
+
 dynamodb = boto3.resource('dynamodb')
-s3_client = boto3.client('s3') # NEW: S3 client
 
-# --- Load Environment Variables ---
 PEAKS_TABLE_NAME = os.environ.get('DYNAMODB_TABLE_NAME')
 ROUTES_TABLE_NAME = os.environ.get('DYNAMODB_ROUTES_TABLE_NAME')
 S3_BUCKET_NAME = os.environ.get('S3_BUCKET_NAME')
 
 if not PEAKS_TABLE_NAME or not ROUTES_TABLE_NAME or not S3_BUCKET_NAME:
-    raise RuntimeError("Missing required environment variables")
+    raise RuntimeError("Missing required environment variables (DB_TABLE, ROUTES_TABLE, or S3_BUCKET)")
 
 peaks_table = dynamodb.Table(PEAKS_TABLE_NAME)
 routes_table = dynamodb.Table(ROUTES_TABLE_NAME)
@@ -57,29 +66,21 @@ def lambda_handler(event, context):
             presigned_routes = []
             for item in items:
                 try:
-                    # Construct the S3 key
                     s3_key = f"trails/{item['filename']}"
-                    
-                    # Generate a temporary (15 min) URL
                     presigned_url = s3_client.generate_presigned_url(
                         'get_object',
                         Params={'Bucket': S3_BUCKET_NAME, 'Key': s3_key},
-                        ExpiresIn=900  # URL is valid for 15 minutes
+                        ExpiresIn=900
                     )
-                    
-                    # Replace the simple 'filename' with the secure URL
                     item['geojson_url'] = presigned_url
                     presigned_routes.append(item)
-                    
                 except Exception as e:
                     print(f"Error generating presigned URL for {item.get('id')}: {e}")
-                    # Optionally skip this item if URL generation fails
 
             return create_success_response(presigned_routes)
         
         # Route 3: POST / (Save a new PEAK)
         if http_method == 'POST' and http_path.endswith('/'):
-            # (Your existing POST logic - unchanged)
             body_str = event.get('body', '{}')
             data_to_save = json.loads(body_str)
             if 'id' not in data_to_save or 'name' not in data_to_save:
