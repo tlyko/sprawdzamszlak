@@ -19,6 +19,7 @@ resource "aws_lambda_function" "sprawdzamszlak_lambda" {
       DYNAMODB_TABLE_NAME = local.sprawdzamszlak_table.name
       DYNAMODB_ROUTES_TABLE_NAME = local.sprawdzamszlak_routes_table.name
       S3_BUCKET_NAME           = aws_s3_bucket.geojson_bucket.id
+      MY_AWS_REGION            = "eu-west-1"
     }
   }
 }
