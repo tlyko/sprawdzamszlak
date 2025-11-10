@@ -1,85 +1,128 @@
 // This is components/TatraMap.tsx
 'use client'; 
 
-// --- CHANGE 1: Import type definitions for state setters ---
 import { useState, useEffect, Dispatch, SetStateAction } from 'react';
-import { MapContainer, TileLayer, CircleMarker, Popup, useMapEvents } from 'react-leaflet';
+import { MapContainer, TileLayer, CircleMarker, Popup, useMapEvents, GeoJSON } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
+import { Layer } from 'leaflet'; // NEW: Import Layer type for event handling
 
-// Your working AWS API Gateway URL
-const AWS_API_URL = "https://akoz890bg6.execute-api.eu-west-1.amazonaws.com/prod/"; // Make sure it has the trailing slash!
+// Your working AWS API Gateway URL (base path)
+const AWS_API_URL_BASE = "https://akoz890bg6.execute-api.eu-west-1.amazonaws.com/prod"; 
 
-// Define what our Peak data looks like (TypeScript)
+// --- Define Interfaces ---
 interface Peak {
   id: string;
   nazwa: string;
-  trudnosc: string; // I see 'trudnosc' in your test data, so I am using this.
+  trudnosc: string;
   latitude?: number;
   longitude?: number;
   height?: number;
 }
 
-// --- NEW: Define the types for our handler's props ---
-interface MapZoomHandlerProps {
-  setZoom: Dispatch<SetStateAction<number>>;
+interface Trail {
+  id: string;
+  name: string;
+  type: 'official' | 'off-piste';
+  geojson_url: string;
 }
 
-// This component will listen to map events
-// --- CHANGE 2: Apply the type to the component's props ---
-function MapZoomHandler({ setZoom }: MapZoomHandlerProps) {
-  const map = useMapEvents({
-    // Fired when the user finishes zooming
-    zoomend: () => {
-      setZoom(map.getZoom());
-    },
-    // Fired when the map first loads
-    load: () => {
-      setZoom(map.getZoom());
-    }
-  });
-  return null; // This component renders nothing
-}
-
-// NEW STYLE: White circle with a thin black border
-const peakStyle = {
-  color: 'black',       // Border color
-  weight: 1,            // Border width in pixels
-  fillColor: 'white',   // Fill color
-  fillOpacity: 1.0,     // Solid fill
+// --- Define Trail Styles ---
+const trailStyles = {
+  'off-piste': {
+    color: '#007bff', // Blue
+    weight: 2,
+    opacity: 0.8,
+    dashArray: '5, 10', // Dotted line
+  },
+  // NEW: Style for hovering over a trail
+  'off-piste-hover': {
+    color: '#0056b3', // Darker Blue
+    weight: 4,
+    opacity: 1,
+    dashArray: '', // Solid line on hover
+  },
+  default: {
+    color: 'gray',
+    weight: 2,
+  }
 };
 
+const getTrailStyle = (trail: Trail) => {
+  if (trail.type === 'off-piste') return trailStyles['off-piste'];
+  return trailStyles.default;
+};
+
+
+// --- Map Components (Unchanged) ---
+interface MapZoomHandlerProps { setZoom: Dispatch<SetStateAction<number>>; }
+function MapZoomHandler({ setZoom }: MapZoomHandlerProps) {
+  const map = useMapEvents({ zoomend: () => setZoom(map.getZoom()), load: () => setZoom(map.getZoom()) });
+  return null;
+}
+const peakStyle = { color: 'black', weight: 1, fillColor: 'white', fillOpacity: 1.0 };
+
+
+// --- Main Component ---
 export default function TatraMap() {
   const [peaks, setPeaks] = useState<Peak[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  
-  // Set initial zoom to match the map
-  const [zoom, setZoom] = useState(11); 
+  const [zoom, setZoom] = useState(11);
+  const [trailManifest, setTrailManifest] = useState<Trail[]>([]);
+  const [trailGeoData, setTrailGeoData] = useState<any[]>([]);
 
-  // CHANGE: Peaks will now only appear at zoom 12 and higher
   const MIN_ZOOM_TO_SHOW_PEAKS = 12;
 
-  // Fetching data (this code is unchanged)
+  // Fetching data (Unchanged)
   useEffect(() => {
-    async function fetchPeaks() {
+    async function fetchAllData() {
       try {
-        const response = await fetch(AWS_API_URL);
-        const data: Peak[] = await response.json();
-        const peaksWithCoords = data.filter(p => p.latitude && p.longitude);
+        const peaksResponse = await fetch(`${AWS_API_URL_BASE}/`); 
+        if (!peaksResponse.ok) { throw new Error(`Failed to fetch peaks: ${peaksResponse.statusText}`); }
+        const peaksData: Peak[] = await peaksResponse.json();
+        const peaksWithCoords = peaksData.filter(p => p.latitude && p.longitude);
         setPeaks(peaksWithCoords);
+
+        const routesResponse = await fetch(`${AWS_API_URL_BASE}/routes`); 
+        if (!routesResponse.ok) { throw new Error(`Failed to fetch routes: ${routesResponse.statusText}`); }
+        const routesData: Trail[] = await routesResponse.json(); 
+        setTrailManifest(routesData);
       } catch (error) {
-        console.error("Failed to fetch peaks:", error);
+        console.error("Failed to fetch manifest:", error);
       } finally {
         setIsLoading(false);
       }
     }
-    fetchPeaks();
+    fetchAllData();
   }, []);
+
+  // Fetching GeoJSON (Unchanged)
+  useEffect(() => {
+    if (!Array.isArray(trailManifest) || trailManifest.length === 0) return;
+    async function fetchAllGeoJson() {
+      console.log(`Fetching ${trailManifest.length} GeoJSON files...`);
+      const promises = trailManifest.map(trail => 
+        fetch(trail.geojson_url)
+          .then(res => {
+            if (!res.ok) { throw new Error(`Failed to fetch ${trail.geojson_url}: ${res.statusText}`); }
+            return res.json();
+          })
+      );
+      try {
+        const allGeoJsonData = await Promise.all(promises);
+        setTrailGeoData(allGeoJsonData);
+        console.log("Successfully loaded all GeoJSON data");
+      } catch (error) {
+        console.error("Error fetching one or more GeoJSON files:", error);
+      }
+    }
+    fetchAllGeoJson();
+  }, [trailManifest]); 
+
 
   if (isLoading) {
     return (
-      // --- THIS WAS THE FIX: Added missing '<' ---
       <main className="flex min-h-screen flex-col items-center justify-center">
-        <p>Loading map and peak data...</p>
+        <p>Loading map, peaks, and trails...</p>
       </main>
     );
   }
@@ -88,7 +131,7 @@ export default function TatraMap() {
     <main>
       <MapContainer 
         center={[49.23, 20.00]}
-        zoom={11} // Initial zoom
+        zoom={11} 
         scrollWheelZoom={true} 
         style={{ height: '100vh', width: '100wh' }}
       >
@@ -96,21 +139,56 @@ export default function TatraMap() {
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
-
-        {/* Add our zoom handler component inside the map */}
         <MapZoomHandler setZoom={setZoom} />
 
-        {/* Conditionally render peaks only if zoom is high enough */}
+        {/* --- MODIFIED: Render all loaded GeoJSON trails --- */}
+        {trailGeoData.map((geoJson, index) => {
+          const trailInfo = trailManifest[index];
+          if (!trailInfo) return null;
+
+          // NEW: This function runs for each trail
+          const onEachFeature = (feature: any, layer: Layer) => {
+            // 1. Bind a popup
+            const popupContent = `
+              <h3 style="font-size: 1.2rem; font-weight: bold; margin: 0; padding-bottom: 5px;">${trailInfo.name}</h3>
+              <p style="margin: 0;">Typ: ${trailInfo.type === 'off-piste' ? 'Pozaszlakowy' : 'Oficjalny'}</p>
+            `;
+            layer.bindPopup(popupContent);
+
+            // 2. Add hover events
+            layer.on({
+              mouseover: (e) => {
+                // Set the "hover" style
+                e.target.setStyle(trailStyles['off-piste-hover']);
+                e.target.bringToFront(); // Bring trail to front on hover
+              },
+              mouseout: (e) => {
+                // Reset to the original style
+                e.target.setStyle(getTrailStyle(trailInfo));
+              }
+            });
+          };
+
+          return (
+            <GeoJSON 
+              key={trailInfo.id} 
+              data={geoJson} 
+              style={getTrailStyle(trailInfo)}
+              // NEW: Attach the event handler
+              onEachFeature={onEachFeature} 
+            />
+          );
+        })}
+
+        {/* Render peaks (unchanged) */}
         {zoom > MIN_ZOOM_TO_SHOW_PEAKS && peaks.map(peak => (
-          // Use CircleMarker instead of Marker
           <CircleMarker 
             key={peak.id} 
             center={[peak.latitude!, peak.longitude!]}
-            radius={6} // Size in pixels
-            pathOptions={peakStyle} // Apply our new white style
+            radius={6} 
+            pathOptions={peakStyle} 
           >
             <Popup>
-              {/* Popup code is unchanged */}
               <div style={{ padding: '5px' }}>
                 <h3 style={{ fontSize: '1.2rem', fontWeight: 'bold' }}>{peak.nazwa} ({peak.height || 'N/A'}m)</h3>
                 <p><strong>Trudność:</strong> {peak.trudnosc}</p>
@@ -119,7 +197,7 @@ export default function TatraMap() {
           </CircleMarker>
         ))}
 
-        {/* Show a helper message if user is zoomed out */}
+        {/* Helper message (unchanged) */}
         {zoom <= MIN_ZOOM_TO_SHOW_PEAKS && (
           <div style={{
             position: 'absolute', 
@@ -131,12 +209,11 @@ export default function TatraMap() {
             borderRadius: '5px', 
             zIndex: 1000,
             pointerEvents: 'none',
-            color: 'black' // Make sure text is visible
+            color: 'black'
           }}>
             Przybliż mapę, aby zobaczyć szczyty
           </div>
         )}
-
       </MapContainer>
     </main>
   );
