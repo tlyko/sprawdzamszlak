@@ -17,6 +17,7 @@ CORS_HEADERS = {
 
 
 def lambda_handler(event, context):
+    print(f"Received event: {json.dumps(event)}")
     
     # Extract the HTTP method from the API Gateway v2 payload
     http_method = event.get('requestContext', {}).get('http', {}).get('method', '')
