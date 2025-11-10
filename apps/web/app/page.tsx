@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 
 // IMPORTANT: Paste your URL from `terraform output` here
-const AWS_API_URL = "https://akoz890bg6.execute-api.eu-west-1.amazonaws.com/prod"; 
+const AWS_API_URL = "https://akoz890bg6.execute-api.eu-west-1.amazonaws.com/prod/"; 
 
 export default function Home() {
   // Change state: 'message' (text) to 'data' (will hold JSON data)
