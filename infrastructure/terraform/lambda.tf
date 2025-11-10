@@ -27,7 +27,7 @@ resource "aws_apigatewayv2_api" "http_api" {
   
   cors_configuration {
     allow_origins = ["*"]
-    allow_methods = ["*"]
+    allow_methods = ["GET", "POST", "OPTIONS"]
     allow_headers = ["*"]
   }
 }
@@ -37,32 +37,51 @@ resource "aws_apigatewayv2_integration" "lambda_integration" {
 
   integration_type = "AWS_PROXY"
   integration_uri  = aws_lambda_function.sprawdzamszlak_lambda.invoke_arn
+
+  payload_format_version = "2.0"
 }
 
-resource "aws_apigatewayv2_route" "proxy_route" {
+resource "aws_apigatewayv2_route" "get_route" {
   api_id = aws_apigatewayv2_api.http_api.id
-  route_key = "$default"
+  route_key = "GET /" 
   target    = "integrations/${aws_apigatewayv2_integration.lambda_integration.id}"
 }
 
-resource "aws_apigatewayv2_stage" "default_stage" {
+resource "aws_apigatewayv2_route" "post_route" {
   api_id = aws_apigatewayv2_api.http_api.id
-  name   = "$default"
-  auto_deploy = true
+  route_key = "POST /"
+  target    = "integrations/${aws_apigatewayv2_integration.lambda_integration.id}"
+}
 
+resource "aws_apigatewayv2_stage" "prod_stage" {
+  api_id = aws_apigatewayv2_api.http_api.id
+  name   = "prod"
+  
+  auto_deploy = true
+  
   depends_on = [
-    aws_apigatewayv2_route.proxy_route
+    aws_apigatewayv2_route.get_route,
+    aws_apigatewayv2_route.post_route
   ]
 }
 
-resource "aws_lambda_permission" "api_gateway_permission" {
+resource "aws_lambda_permission" "api_gateway_permission_get" {
   action        = "lambda:InvokeFunction"
   function_name = aws_lambda_function.sprawdzamszlak_lambda.function_name
   principal     = "apigateway.amazonaws.com"
-  source_arn = "${aws_apigatewayv2_api.http_api.execution_arn}/*"
+
+  source_arn = "${aws_apigatewayv2_api.http_api.execution_arn}/${aws_apigatewayv2_stage.prod_stage.name}/GET/"
+}
+
+resource "aws_lambda_permission" "api_gateway_permission_post" {
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.sprawdzamszlak_lambda.function_name
+  principal     = "apigateway.amazonaws.com"
+
+  source_arn = "${aws_apigatewayv2_api.http_api.execution_arn}/${aws_apigatewayv2_stage.prod_stage.name}/POST/"
 }
 
 output "api_endpoint" {
-  description = "The public invoke URL for the sprawdzamszlak API"
-  value       = aws_apigatewayv2_api.http_api.api_endpoint
+  description = "The public invoke URL for the sprawdzamszlak API (prod stage)"
+  value       = "${aws_apigatewayv2_api.http_api.api_endpoint}/${aws_apigatewayv2_stage.prod_stage.name}"
 }
