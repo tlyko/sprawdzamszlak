@@ -1,23 +1,12 @@
 // This is components/TatraMap.tsx
-'use client'; // IMPORTANT: Leaflet maps only work in the browser
+'use client'; 
 
 import { useState, useEffect } from 'react';
-import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
-import 'leaflet/dist/leaflet.css'; // Import styles for the map
-import L from 'leaflet'; // Import leaflet to fix the icon
+import { MapContainer, TileLayer, CircleMarker, Popup, useMapEvents } from 'react-leaflet';
+import 'leaflet/dist/leaflet.css';
 
-// Paste your working AWS API Gateway URL here
+// Your working AWS API Gateway URL
 const AWS_API_URL = "https://akoz890bg6.execute-api.eu-west-1.amazonaws.com/prod/"; // Make sure it has the trailing slash!
-
-// --- Fix for the default Leaflet icon ---
-const defaultIcon = L.icon({
-    iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-    iconSize: [25, 41],
-    iconAnchor: [12, 41],
-});
-L.Marker.prototype.options.icon = defaultIcon;
-// --- End of icon fix ---
-
 
 // Define what our Peak data looks like (TypeScript)
 interface Peak {
@@ -29,21 +18,47 @@ interface Peak {
   height?: number;
 }
 
-// IMPORTANT: We changed the function name from Home to TatraMap
+// This component will listen to map events
+function MapZoomHandler({ setZoom }) {
+  const map = useMapEvents({
+    // Fired when the user finishes zooming
+    zoomend: () => {
+      setZoom(map.getZoom());
+    },
+    // Fired when the map first loads
+    load: () => {
+      setZoom(map.getZoom());
+    }
+  });
+  return null; // This component renders nothing
+}
+
+// NEW STYLE: White circle with a thin black border
+const peakStyle = {
+  color: 'black',       // Border color
+  weight: 1,            // Border width in pixels
+  fillColor: 'white',   // Fill color
+  fillOpacity: 1.0,     // Solid fill
+};
+
 export default function TatraMap() {
   const [peaks, setPeaks] = useState<Peak[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  
+  // Set initial zoom to match the map
+  const [zoom, setZoom] = useState(11); 
 
-  // Fetch data from your AWS Worker when the page loads
+  // CHANGE: Peaks will now only appear at zoom 12 and higher
+  const MIN_ZOOM_TO_SHOW_PEAKS = 12;
+
+  // Fetching data (this code is unchanged)
   useEffect(() => {
     async function fetchPeaks() {
       try {
         const response = await fetch(AWS_API_URL);
         const data: Peak[] = await response.json();
-        
         const peaksWithCoords = data.filter(p => p.latitude && p.longitude);
         setPeaks(peaksWithCoords);
-        
       } catch (error) {
         console.error("Failed to fetch peaks:", error);
       } finally {
@@ -64,29 +79,56 @@ export default function TatraMap() {
   return (
     <main>
       <MapContainer 
-        center={[49.23, 20.00]} // Center of Tatra Mountains
-        zoom={11} // Zoom level
+        center={[49.23, 20.00]}
+        zoom={11} // Initial zoom
         scrollWheelZoom={true} 
-        style={{ height: '100vh', width: '100wh' }} // Map full screen
+        style={{ height: '100vh', width: '100wh' }}
       >
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
 
-        {peaks.map(peak => (
-          <Marker 
+        {/* Add our zoom handler component inside the map */}
+        <MapZoomHandler setZoom={setZoom} />
+
+        {/* Conditionally render peaks only if zoom is high enough */}
+        {zoom > MIN_ZOOM_TO_SHOW_PEAKS && peaks.map(peak => (
+          // Use CircleMarker instead of Marker
+          <CircleMarker 
             key={peak.id} 
-            position={[peak.latitude!, peak.longitude!]}
+            center={[peak.latitude!, peak.longitude!]}
+            radius={6} // Size in pixels
+            pathOptions={peakStyle} // CHANGE: Apply our new white style
           >
             <Popup>
+              {/* Popup code is unchanged */}
               <div style={{ padding: '5px' }}>
                 <h3 style={{ fontSize: '1.2rem', fontWeight: 'bold' }}>{peak.nazwa} ({peak.height || 'N/A'}m)</h3>
                 <p><strong>Trudność:</strong> {peak.trudnosc}</p>
               </div>
             </Popup>
-          </Marker>
+          </CircleMarker>
         ))}
+
+        {/* Show a helper message if user is zoomed out */}
+        {zoom <= MIN_ZOOM_TO_SHOW_PEAKS && (
+          <div style={{
+            position: 'absolute', 
+            top: '50%', 
+            left: '50%', 
+            transform: 'translate(-50%, -50%)', 
+            padding: '10px', 
+            backgroundColor: 'rgba(255, 255, 255, 0.8)', 
+            borderRadius: '5px', 
+            zIndex: 1000,
+            pointerEvents: 'none',
+            color: 'black' // Make sure text is visible
+          }}>
+            Przybliż mapę, aby zobaczyć szczyty
+          </div>
+        )}
+
       </MapContainer>
     </main>
   );
