@@ -27,10 +27,9 @@ if not PEAKS_TABLE_NAME or not ROUTES_TABLE_NAME or not S3_BUCKET_NAME:
 peaks_table = dynamodb.Table(PEAKS_TABLE_NAME)
 routes_table = dynamodb.Table(ROUTES_TABLE_NAME)
 
-CORS_HEADERS = {
-    "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Headers": "Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token",
-    "Access-Control-Allow-Methods": "POST, GET, OPTIONS"
+RESPONSE_HEADERS = {
+    "Content-Type": "application/json",
+    "Vary": "Origin"
 }
 # ---------------------
 
@@ -38,9 +37,6 @@ def lambda_handler(event, context):
     try:
         http_method = event.get('requestContext', {}).get('http', {}).get('method', '')
         http_path = event.get('requestContext', {}).get('http', {}).get('path', '')
-        
-        if http_method == 'OPTIONS':
-            return create_success_response("", 204)
 
         # --- ROUTING ---
         
@@ -79,15 +75,6 @@ def lambda_handler(event, context):
 
             return create_success_response(presigned_routes)
         
-        # Route 3: POST / (Save a new PEAK)
-        if http_method == 'POST' and http_path.endswith('/'):
-            body_str = event.get('body', '{}')
-            data_to_save = json.loads(body_str)
-            if 'id' not in data_to_save or 'name' not in data_to_save:
-                return create_error_response(400, "Missing 'id' or 'name'")
-            peaks_table.put_item(Item=data_to_save)
-            return create_success_response({"message": "Successfully saved item", "item": data_to_save}, 201)
-
         # Default 404
         return create_error_response(404, f"Path {http_method} {http_path} not found")
     
@@ -96,8 +83,8 @@ def lambda_handler(event, context):
         return create_error_response(500, f"Internal Server Error: {str(e)}")
 
 
-# --- Helper Functions (Unchanged) ---
+# --- Helper Functions ---
 def create_success_response(body, status_code=200):
-    return { "statusCode": status_code, "headers": CORS_HEADERS, "body": "" if status_code == 204 else json.dumps(body, default=str) }
+    return { "statusCode": status_code, "headers": RESPONSE_HEADERS, "body": "" if status_code == 204 else json.dumps(body, default=str) }
 def create_error_response(status_code, message):
-    return { "statusCode": status_code, "headers": CORS_HEADERS, "body": json.dumps({ "message": message }) }
+    return { "statusCode": status_code, "headers": RESPONSE_HEADERS, "body": json.dumps({ "message": message }) }
