@@ -1,5 +1,8 @@
+# Adopts the per-account "Default-Services-Monitor" that AWS auto-creates.
+# AWS limits dimensional monitors to 1 per account, so we import the
+# existing one rather than creating a parallel.
 resource "aws_ce_anomaly_monitor" "services" {
-  name              = "${local.app_name}-services"
+  name              = "Default-Services-Monitor"
   monitor_type      = "DIMENSIONAL"
   monitor_dimension = "SERVICE"
 }
