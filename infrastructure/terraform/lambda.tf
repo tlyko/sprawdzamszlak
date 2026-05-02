@@ -29,7 +29,11 @@ resource "aws_apigatewayv2_api" "http_api" {
   protocol_type = "HTTP"
 
   cors_configuration {
-    allow_origins = ["https://sprawdzamszlak.pl", "http://localhost:3000"]
+    allow_origins = [
+      "https://sprawdzamszlak.pl",
+      "https://sprawdzamszlak-frontend.pages.dev",
+      "http://localhost:3000",
+    ]
     allow_methods = ["GET", "OPTIONS"]
     allow_headers = ["Content-Type"]
     max_age       = 3600
