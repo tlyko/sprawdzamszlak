@@ -1,5 +1,6 @@
 locals {
-  app_name = "sprawdzamszlak-app"
+  app_name    = "sprawdzamszlak-app"
+  owner_email = "tlyko94@gmail.com"
   sprawdzamszlak_table = {
     name         = "sprawdzamszlak-data"
     billing_mode = "PAY_PER_REQUEST"
