@@ -5,14 +5,21 @@ data "archive_file" "lambda_zip" {
   output_path = "${path.module}/dist/lambda.zip"
 }
 
+resource "aws_cloudwatch_log_group" "lambda_logs" {
+  name              = "/aws/lambda/${local.app_name}"
+  retention_in_days = 14
+}
+
 resource "aws_lambda_function" "sprawdzamszlak_lambda" {
   function_name    = local.app_name
   filename         = data.archive_file.lambda_zip.output_path
   source_code_hash = data.archive_file.lambda_zip.output_base64sha256
   role             = aws_iam_role.sprawdzamszlak_app_role.arn
 
-  handler = "lambda_function.lambda_handler"
-  runtime = "python3.13"
+  handler     = "lambda_function.lambda_handler"
+  runtime     = "python3.13"
+  timeout     = 10
+  memory_size = 256
 
   environment {
     variables = {
@@ -22,6 +29,8 @@ resource "aws_lambda_function" "sprawdzamszlak_lambda" {
       MY_AWS_REGION              = "eu-west-1"
     }
   }
+
+  depends_on = [aws_cloudwatch_log_group.lambda_logs]
 }
 
 resource "aws_apigatewayv2_api" "http_api" {
