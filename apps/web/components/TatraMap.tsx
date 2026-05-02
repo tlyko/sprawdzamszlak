@@ -146,14 +146,21 @@ export default function TatraMap() {
           const trailInfo = trailManifest[index];
           if (!trailInfo) return null;
 
-          // NEW: This function runs for each trail
-          const onEachFeature = (feature: any, layer: Layer) => {
-            // 1. Bind a popup
-            const popupContent = `
-              <h3 style="font-size: 1.2rem; font-weight: bold; margin: 0; padding-bottom: 5px;">${trailInfo.name}</h3>
-              <p style="margin: 0;">Typ: ${trailInfo.type === 'off-piste' ? 'Pozaszlakowy' : 'Oficjalny'}</p>
-            `;
-            layer.bindPopup(popupContent);
+          const onEachFeature = (_feature: unknown, layer: Layer) => {
+            // bindPopup with a DOM element (not a raw HTML string) so that
+            // trailInfo.name is set via textContent and never interpreted as HTML.
+            const container = document.createElement('div');
+
+            const heading = document.createElement('h3');
+            heading.style.cssText = 'font-size:1.2rem;font-weight:bold;margin:0;padding-bottom:5px;';
+            heading.textContent = trailInfo.name;
+
+            const typeLine = document.createElement('p');
+            typeLine.style.margin = '0';
+            typeLine.textContent = `Typ: ${trailInfo.type === 'off-piste' ? 'Pozaszlakowy' : 'Oficjalny'}`;
+
+            container.append(heading, typeLine);
+            layer.bindPopup(container);
 
             // 2. Add hover events
             layer.on({
