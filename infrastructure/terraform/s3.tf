@@ -19,14 +19,14 @@ resource "aws_s3_bucket_cors_configuration" "geojson_bucket_cors" {
 
   cors_rule {
     allowed_headers = ["*"]
-    
-    allowed_methods = ["GET", "HEAD"] 
-    
+
+    allowed_methods = ["GET", "HEAD"]
+
     allowed_origins = [
       "https://sprawdzamszlak.pl"
     ]
-    
-    expose_headers = []
+
+    expose_headers  = []
     max_age_seconds = 3000
   }
   depends_on = [aws_s3_bucket_public_access_block.geojson_bucket_public_access]
