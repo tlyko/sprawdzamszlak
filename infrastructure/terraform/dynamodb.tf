@@ -61,7 +61,7 @@ resource "aws_dynamodb_table_item" "routes" {
     "id"   = { "S" = each.key },
     "name" = { "S" = each.value.name },
     "type" = { "S" = each.value.type },
-    
+
     # We dynamically construct the URL based on the bucket name and the filename
     "filename" = { "S" = each.value.filename }
   })

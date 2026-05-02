@@ -21,4 +21,12 @@ terraform {
 
 provider "aws" {
   region = "eu-west-1"
+
+  default_tags {
+    tags = {
+      ManagedBy = "Terraform"
+      Project   = "sprawdzamszlak"
+      Repo      = "https://github.com/tlyko/sprawdzamszlak-infrastructure"
+    }
+  }
 }

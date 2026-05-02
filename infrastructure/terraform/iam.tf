@@ -3,7 +3,7 @@ data "aws_iam_policy_document" "sprawdzamszlak_db_policy_doc" {
   statement {
     sid    = "AllowAppToAccessTable"
     effect = "Allow"
-    
+
     actions = [
       "dynamodb:GetItem",
       "dynamodb:PutItem",
