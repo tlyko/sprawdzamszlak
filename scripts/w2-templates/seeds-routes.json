@@ -1,0 +1,74 @@
+[
+  {
+    "id": "vysoka",
+    "name": "Wysoka (trasa pozaszlakowa)",
+    "type": "off-piste",
+    "filename": "vysoka.geojson"
+  },
+  {
+    "id": "szatan",
+    "name": "Szatan (trasa pozaszlakowa)",
+    "type": "off-piste",
+    "filename": "szatan.geojson"
+  },
+  {
+    "id": "swistowy_szczyt",
+    "name": "Świstowy Szczyt (trasa pozaszlakowa)",
+    "type": "off-piste",
+    "filename": "swistowy_szczyt.geojson"
+  },
+  {
+    "id": "mieguszowiecki_szczyt_czarny",
+    "name": "Mięguszowiecki Szczyt Czarny (trasa pozaszlakowa)",
+    "type": "off-piste",
+    "filename": "mieguszowiecki_szczyt_czarny.geojson"
+  },
+  {
+    "id": "krywan_gpx",
+    "name": "Krywań (zapis GPX)",
+    "type": "official",
+    "filename": "krywan.geojson"
+  },
+  {
+    "id": "konczysta_gpx",
+    "name": "Kończysta (zapis GPX)",
+    "type": "off-piste",
+    "filename": "konczysta.geojson"
+  },
+  {
+    "id": "kiezmarski_szczyt_gpx",
+    "name": "Kieżmarski Szczyt (zapis GPX)",
+    "type": "off-piste",
+    "filename": "kiezmarski_szczyt.geojson"
+  },
+  {
+    "id": "jaworowy_szczyt",
+    "name": "Jaworowy Szczyt (trasa pozaszlakowa)",
+    "type": "off-piste",
+    "filename": "jaworowy_szczyt.geojson"
+  },
+  {
+    "id": "furkot",
+    "name": "Furkot (trasa pozaszlakowa)",
+    "type": "off-piste",
+    "filename": "furkot.geojson"
+  },
+  {
+    "id": "cubryna",
+    "name": "Cubryna (trasa pozaszlakowa)",
+    "type": "off-piste",
+    "filename": "cubryna.geojson"
+  },
+  {
+    "id": "baranie_rogi_gpx",
+    "name": "Baranie Rogi (zapis GPX)",
+    "type": "off-piste",
+    "filename": "baranie_rogi.geojson"
+  },
+  {
+    "id": "lodowa_kopa",
+    "name": "Lodowa Kopa (trasa pozaszlakowa)",
+    "type": "off-piste",
+    "filename": "lodowa_kopa.geojson"
+  }
+]
