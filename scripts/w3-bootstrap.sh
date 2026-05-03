@@ -127,8 +127,10 @@ fi
 green "  api dist size: $(stat -f%z "$ROOT/apps/api/dist/handler.js" 2>/dev/null || stat -c%s "$ROOT/apps/api/dist/handler.js") bytes"
 
 # ---------------------------------------------------------------------------
-step "4. terraform fmt + validate + plan"
+step "4. terraform fmt + validate"
 # ---------------------------------------------------------------------------
+# Plan + apply are now done by GitHub Actions on PR / merge (ADR-005).
+# We only sanity-check the .tf files locally before push.
 
 cd "$ROOT/infrastructure/terraform"
 
@@ -140,24 +142,13 @@ fi
 terraform fmt -recursive >/dev/null
 terraform validate
 
-PLAN_FILE="/tmp/tf-plan-w3.txt"
-yellow "  Running plan; output → $PLAN_FILE"
-yellow "  NOTE: this requires TF_VAR_admin_pass to be exported. Use a placeholder if you only want to validate the plan shape:"
-yellow "    export TF_VAR_admin_pass=\"placeholder-for-plan-only\""
-if ! terraform plan -no-color > "$PLAN_FILE" 2>&1; then
-  red "terraform plan failed. See $PLAN_FILE."
-  tail -40 "$PLAN_FILE"
-  exit 1
-fi
-tail -8 "$PLAN_FILE"
-
 cd "$ROOT"
 
 # ---------------------------------------------------------------------------
 step "5. Commit + push + open PR + post plan"
 # ---------------------------------------------------------------------------
 
-git add -A apps/ packages/ infrastructure/terraform/
+git add apps packages infrastructure/terraform
 if git diff --cached --quiet; then
   yellow "  Nothing to commit"
 else
@@ -179,35 +170,21 @@ else
   green "  Opened W3 PR #$PR_NUM"
 fi
 
-{
-  echo "## \`terraform plan\` (W3)"
-  echo ""
-  echo "Captured by \`scripts/w3-bootstrap.sh\` on $(date '+%Y-%m-%d %H:%M %Z')."
-  echo ""
-  echo "<details><summary>Full plan output</summary>"
-  echo ""
-  echo '```hcl'
-  cat "$PLAN_FILE"
-  echo '```'
-  echo ""
-  echo "</details>"
-} > /tmp/tf-plan-w3-comment.md
-
-gh pr comment "$PR_NUM" --repo "$GH_OWNER/$REPO" --body-file /tmp/tf-plan-w3-comment.md >/dev/null
-green "  Plan posted as comment"
+green "  GitHub Actions will run terraform plan and post the output as a PR comment."
 
 green ""
 green "==========================================================="
 green "W3 PR #$PR_NUM ready for review."
 green "==========================================================="
 green ""
-green "Apply order on your box:"
-green "  1) Generate admin password:"
-green "       export TF_VAR_admin_pass=\"\$(openssl rand -base64 32)\""
-green "       Save it to 1Password (it will not be shown again)."
-green "  2) cd infrastructure/terraform"
-green "  3) terraform plan"
-green "  4) terraform apply"
+green "Next steps (now that CI/CD is on GitHub Actions per ADR-005):"
+green "  1) Generate admin password and save to 1Password:"
+green "       openssl rand -base64 32"
+green "  2) Add as GitHub repo secret named TF_VAR_ADMIN_PASS:"
+green "       gh secret set TF_VAR_ADMIN_PASS --repo $GH_OWNER/$REPO"
+green "  3) Review the W3 PR; the GHA-posted plan will show ADMIN_PASS=(known after apply)."
+green "  4) Merge the PR — GitHub Actions runs terraform apply automatically."
+green "  5) After merge, smoke test:"
 green ""
 green "Test after apply:"
 green "  curl -X POST -u tomek:\$TF_VAR_admin_pass \\"
