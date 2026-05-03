@@ -1,9 +1,23 @@
 # ADR-002: Auth strategy for the admin panel
 
 **Date:** 2026-05-03
-**Status:** Accepted
+**Status:** Superseded by ADR-007 on 2026-05-03
 **Decision-maker:** Tomek (właściciel)
 **Author:** architect (continuation of ADR-001 follow-ups)
+
+## Superseded — why
+
+PR #21 (W3 admin panel + GPX upload) was closed without merging after re-evaluation:
+
+- New activities flow through Strava webhook (W4); no admin upload needed for the steady state.
+- Historical GPX is already imported.
+- The 2-3×/year edge case "Strava didn't capture, I have a Garmin GPX" is better served by a CLI script (`apps/api/scripts/upload-gpx.ts`) authenticated via owner's AWS SSO — no public endpoint, no shared password.
+
+With no admin panel, there is no auth boundary to design. Strava OAuth (the only remaining "admin-ish" flow) is single-user-by-Strava-account, not by admin password — see ADR-007.
+
+If a browser admin panel returns post-season (after 2026-06-15), revisit with Cloudflare Access (Option C below) or AWS IAM SigV4 — Option A (basic auth) is no longer the recommended starting point.
+
+The original analysis is preserved below for context.
 
 ## Context
 
