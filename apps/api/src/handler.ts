@@ -16,9 +16,8 @@ import type {
   APIGatewayProxyResultV2,
   Context,
 } from 'aws-lambda';
-import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
-import { DynamoDBDocumentClient, ScanCommand } from '@aws-sdk/lib-dynamodb';
-import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3';
+import { ScanCommand } from '@aws-sdk/lib-dynamodb';
+import { GetObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import {
   PeakSchema,
@@ -28,27 +27,15 @@ import {
   SAFE_FILENAME,
 } from '@sprawdzamszlak/shared';
 
+import { ddb, s3, envOrThrow } from './clients.js';
+import { handleOAuthStart, handleOAuthCallback } from './strava/oauth.js';
+
 // ---------------------------------------------------------------------------
 // Env validation at cold start
 // ---------------------------------------------------------------------------
-function envOrThrow(name: string): string {
-  const value = process.env[name];
-  if (!value) throw new Error(`Missing env var ${name}`);
-  return value;
-}
-
-const REGION = envOrThrow('MY_AWS_REGION');
 const PEAKS_TABLE = envOrThrow('DYNAMODB_TABLE_NAME');
 const ROUTES_TABLE = envOrThrow('DYNAMODB_ROUTES_TABLE_NAME');
 const S3_BUCKET = envOrThrow('S3_BUCKET_NAME');
-
-// ---------------------------------------------------------------------------
-// AWS clients (created once at cold start, reused across invocations)
-// ---------------------------------------------------------------------------
-const ddb = DynamoDBDocumentClient.from(new DynamoDBClient({ region: REGION }), {
-  marshallOptions: { removeUndefinedValues: true },
-});
-const s3 = new S3Client({ region: REGION });
 
 // ---------------------------------------------------------------------------
 // Shared response shape — let API Gateway own CORS, we only set Content-Type
@@ -119,6 +106,16 @@ export const handler = async (
       const routes = await scanAll(ROUTES_TABLE, (raw) => RouteSchema.parse(raw));
       const enriched = await enrichWithPresignedUrls(routes);
       return json(200, enriched);
+    }
+
+    // Route 3: GET /strava/oauth/start → 302 to Strava authorize URL
+    if (method === 'GET' && path.endsWith('/strava/oauth/start')) {
+      return handleOAuthStart();
+    }
+
+    // Route 4: GET /strava/oauth/callback → exchange code, write tokens, 302 to web
+    if (method === 'GET' && path.endsWith('/strava/oauth/callback')) {
+      return handleOAuthCallback(event);
     }
 
     return error(404, `Path ${method} ${path} not found`);

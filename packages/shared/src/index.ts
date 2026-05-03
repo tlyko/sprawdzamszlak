@@ -96,6 +96,17 @@ export const SPORT_TYPE_ALLOWLIST = [
 export const StravaSportTypeSchema = z.enum(SPORT_TYPE_ALLOWLIST);
 export type StravaSportType = z.infer<typeof StravaSportTypeSchema>;
 
+// Persisted Strava token tuple (Parameter Store SecureString, JSON-encoded).
+// `expires_at` is the access-token expiry as unix seconds — refresh in the
+// fetcher Lambda when `now >= expires_at - 60s`.
+export const StravaTokensSchema = z.object({
+  access_token: z.string().min(1),
+  refresh_token: z.string().min(1),
+  expires_at: z.number().int().positive(),
+  athlete_id: z.number().int().positive(),
+});
+export type StravaTokens = z.infer<typeof StravaTokensSchema>;
+
 // Concrete schema is filled in W4 once Strava API shapes are pinned.
 export const StravaActivitySchema = z.object({
   id: StravaActivityIdSchema,
