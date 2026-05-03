@@ -21,7 +21,7 @@ Strava-side facts that constrain the design:
 User-side facts:
 
 - **Single user (Tomek)** for now — webhook handler can store everything keyed on a single Strava `athlete_id`.
-- **Activities of interest are mountain hikes** — filtering by `sport_type` to `Hike` / `TrailRun` / similar is fine; everything else (commute rides, gym) is dropped silently.
+- **Activities of interest are strictly mountain hiking, trekking, and climbing.** The owner also logs unrelated workouts in Strava (gym sessions, road running, road cycling) — those must be silently dropped. Filtering uses an **allow-list** of `sport_type` values (see D3a below), not a deny-list, so any future Strava sport type doesn't accidentally start showing on the map.
 - Tomek wants the activity on the map "natychmiast po przejściu szlaku" → real-time on event, not a daily polling job.
 
 ## Decision drivers
@@ -60,13 +60,35 @@ Asynchronous side processes the activity:
   - Refresh access token if expired (timestamp comparison locally; refresh API call only when needed).
   - `GET /activities/{id}` for metadata (name, sport_type, start_date, distance, elevation_gain).
   - `GET /activities/{id}/streams?keys=latlng,altitude,time,distance` for the GPS track.
-  - Filter: drop if `sport_type` not in {`Hike`, `TrailRun`, `Walk`, `AlpineSki`, `BackcountrySki`}.
+  - **Filter (allow-list, see D3a)**: drop if `sport_type` not in `STRAVA_ACCEPTED_SPORT_TYPES`.
   - Convert latlng stream → GeoJSON LineString.
   - PUT GeoJSON to S3 (`trails/strava-{activity_id}.geojson`).
   - PUT row to `sprawdzamszlak-routes` table (`id = strava-{activity_id}`, `name`, `type = "off-piste"` or based on heuristics, `filename`).
   - On failure: log error with `activity_id`, leave the event in the DDB events table for manual replay (TTL: 7 days).
 
 **Rationale:** the inline option (~1.5-2s p95 with cold start) is too close to Strava's 2s timeout. Even one slow Strava API call pushes us over and triggers a retry storm. DDB Streams + a second Lambda gives near-zero hot-path latency, native retry semantics on the stream side, and trivial replayability (just reinsert the event).
+
+### D3a — `sport_type` allow-list
+
+```ts
+// packages/shared/src/index.ts
+export const STRAVA_ACCEPTED_SPORT_TYPES = [
+  // Mountain hiking / trekking
+  'Hike',
+  'Walk',           // sometimes mountain walks are logged as Walk, especially short ones
+  // Climbing
+  'RockClimbing',
+  // Backcountry skiing — counts as a mountain trip
+  'BackcountrySki',
+  'AlpineSki',
+] as const;
+
+export type StravaAcceptedSportType = (typeof STRAVA_ACCEPTED_SPORT_TYPES)[number];
+```
+
+Anything else (`Run`, `TrailRun`, `Ride`, `VirtualRide`, `WeightTraining`, etc.) is dropped silently — `event_id` is still recorded in the events table for idempotency, but the fetcher exits before calling the Strava API for the streams. Logged with the dropped `sport_type` so we can audit the filter via CloudWatch.
+
+The allow-list is intentionally narrow. To extend it (e.g. add `MountainBikeRide` if the owner ever logs MTB descents on the same trails) — edit this list, redeploy, no schema migration needed.
 
 ### D3 — Idempotency key
 
