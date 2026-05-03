@@ -1,11 +1,11 @@
 terraform {
-  cloud {
-    organization = "sprawdzamszlak-org"
-    workspaces {
-      name = "sprawdzamszlak-infrastructure"
-    }
+  backend "s3" {
+    bucket         = "sprawdzamszlak-tfstate-214598715232"
+    key            = "sprawdzamszlak/terraform.tfstate"
+    region         = "eu-west-1"
+    dynamodb_table = "sprawdzamszlak-tfstate-locks"
+    encrypt        = true
   }
-
 
   required_providers {
     aws = {
@@ -26,7 +26,7 @@ provider "aws" {
     tags = {
       ManagedBy = "Terraform"
       Project   = "sprawdzamszlak"
-      Repo      = "https://github.com/tlyko/sprawdzamszlak-infrastructure"
+      Repo      = "https://github.com/tlyko/sprawdzamszlak"
     }
   }
 }
