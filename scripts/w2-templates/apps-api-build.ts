@@ -9,14 +9,18 @@
 // `@sprawdzamszlak/shared` is bundled in (workspace package, not in runtime).
 
 import { build } from 'esbuild';
+import { writeFile, mkdir } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
 
 const here = dirname(fileURLToPath(import.meta.url));
+const distDir = resolve(here, 'dist');
+
+await mkdir(distDir, { recursive: true });
 
 await build({
   entryPoints: [resolve(here, 'src/handler.ts')],
-  outfile: resolve(here, 'dist/handler.js'),
+  outfile: resolve(distDir, 'handler.js'),
   bundle: true,
   platform: 'node',
   target: 'node22',
@@ -32,3 +36,8 @@ await build({
   sourcemap: true,
   logLevel: 'info',
 });
+
+// Lambda's nodejs22.x runtime treats .js as CommonJS unless the closest
+// package.json says otherwise. We emit ESM, so write a minimal package.json
+// into dist/ that opts the bundle into ESM.
+await writeFile(resolve(distDir, 'package.json'), '{"type":"module"}\n');
