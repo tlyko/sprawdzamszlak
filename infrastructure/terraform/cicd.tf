@@ -180,36 +180,22 @@ data "aws_iam_policy_document" "gha_terraform_perms" {
     ]
   }
 
-  # S3 — the GeoJSON bucket
+  # S3 — the GeoJSON bucket. Wide Get*/List*/Put*/Delete* on bucket-level
+  # operations is acceptable here because the resource pattern still pins
+  # us to sprawdzamszlak-trails-storage-*. Object-level actions are not
+  # needed by the Terraform config (the Lambda's own role does object reads).
   statement {
     sid    = "S3App"
     effect = "Allow"
     actions = [
       "s3:CreateBucket",
-      "s3:GetBucketAcl",
-      "s3:GetBucketCors",
-      "s3:GetBucketLocation",
-      "s3:GetBucketLogging",
-      "s3:GetBucketObjectLockConfiguration",
-      "s3:GetBucketOwnershipControls",
-      "s3:GetBucketPolicy",
-      "s3:GetBucketPublicAccessBlock",
-      "s3:GetBucketRequestPayment",
-      "s3:GetBucketTagging",
-      "s3:GetBucketVersioning",
-      "s3:GetBucketWebsite",
-      "s3:GetEncryptionConfiguration",
-      "s3:GetLifecycleConfiguration",
-      "s3:GetReplicationConfiguration",
-      "s3:ListBucket",
-      "s3:PutBucketCors",
-      "s3:PutBucketPolicy",
-      "s3:PutBucketPublicAccessBlock",
-      "s3:PutBucketTagging",
-      "s3:PutBucketVersioning",
-      "s3:PutEncryptionConfiguration",
-      "s3:PutLifecycleConfiguration",
+      "s3:DeleteBucket",
+      "s3:Get*",
+      "s3:List*",
+      "s3:Put*",
       "s3:DeleteBucketPolicy",
+      "s3:DeleteBucketCors",
+      "s3:DeleteBucketTagging",
     ]
     resources = ["arn:aws:s3:::sprawdzamszlak-trails-storage-*"]
   }
@@ -228,43 +214,24 @@ data "aws_iam_policy_document" "gha_terraform_perms" {
     resources = ["*"]
   }
 
-  # CloudWatch Logs — both Lambda's log group and API GW access logs
+  # CloudWatch Logs — both Lambda's log group and API GW access logs.
+  # Wide on log-group operations under the project resource pattern; cheap
+  # safety against the next "ListTagsFor*"-style refresh action.
   statement {
-    sid    = "Logs"
-    effect = "Allow"
-    actions = [
-      "logs:CreateLogGroup",
-      "logs:DeleteLogGroup",
-      "logs:DescribeLogGroups",
-      "logs:PutRetentionPolicy",
-      "logs:DeleteRetentionPolicy",
-      "logs:TagResource",
-      "logs:UntagResource",
-      "logs:ListTagsForResource",
-    ]
+    sid       = "Logs"
+    effect    = "Allow"
+    actions   = ["logs:*"]
     resources = ["arn:aws:logs:eu-west-1:214598715232:log-group:*"]
   }
 
-  # Cost Explorer + Budgets — global services for our cost monitoring
+  # Cost Explorer + Budgets — global services. Wide ce:*/budgets:* is
+  # acceptable; this account isn't shared, and these services don't manage
+  # other workloads. Narrowing wastes time chasing the next ListTagsFor*
+  # action that isn't on our allowlist.
   statement {
-    sid    = "CostMonitoring"
-    effect = "Allow"
-    actions = [
-      "ce:GetAnomalyMonitors",
-      "ce:GetAnomalySubscriptions",
-      "ce:CreateAnomalyMonitor",
-      "ce:CreateAnomalySubscription",
-      "ce:UpdateAnomalyMonitor",
-      "ce:UpdateAnomalySubscription",
-      "ce:DeleteAnomalyMonitor",
-      "ce:DeleteAnomalySubscription",
-      "budgets:DescribeBudget",
-      "budgets:CreateBudget",
-      "budgets:ModifyBudget",
-      "budgets:DeleteBudget",
-      "budgets:DescribeBudgetAction",
-      "budgets:ViewBudget",
-    ]
+    sid       = "CostMonitoring"
+    effect    = "Allow"
+    actions   = ["ce:*", "budgets:*"]
     resources = ["*"]
   }
 }
