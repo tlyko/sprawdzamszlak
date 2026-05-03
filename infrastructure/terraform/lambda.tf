@@ -28,7 +28,7 @@ resource "aws_lambda_function" "sprawdzamszlak_lambda" {
       OAUTH_STATES_TABLE         = local.strava_oauth_states_table.name
       S3_BUCKET_NAME             = aws_s3_bucket.geojson_bucket.id
       MY_AWS_REGION              = "eu-west-1"
-      STRAVA_REDIRECT_URI        = "${aws_apigatewayv2_api.http_api.api_endpoint}/${aws_apigatewayv2_stage.prod_stage.name}/strava/oauth/callback"
+      STRAVA_REDIRECT_URI        = "${aws_apigatewayv2_api.http_api.api_endpoint}/${local.api_stage}/strava/oauth/callback"
       WEB_BASE_URL               = "https://sprawdzamszlak.pl"
     }
   }
@@ -110,7 +110,7 @@ resource "aws_cloudwatch_log_group" "api_gw_access" {
 
 resource "aws_apigatewayv2_stage" "prod_stage" {
   api_id = aws_apigatewayv2_api.http_api.id
-  name   = "prod"
+  name   = local.api_stage
 
   deployment_id = aws_apigatewayv2_deployment.main_deployment.id
 

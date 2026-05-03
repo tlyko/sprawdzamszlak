@@ -1,6 +1,7 @@
 locals {
   app_name    = "sprawdzamszlak-app"
   owner_email = "tlyko94@gmail.com"
+  api_stage   = "prod"
 
   sprawdzamszlak_table = {
     name         = "sprawdzamszlak-data"
