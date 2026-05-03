@@ -68,10 +68,11 @@ green "  config.tf saved to $CONFIG_BACKUP"
 
 # Replace the s3 backend block with the original cloud{} block. We do this
 # in-place; restored at the end.
-python3 - <<'PY'
+python3 - "$CONFIG" <<'PY'
+import sys
 from pathlib import Path
 
-p = Path("infrastructure/terraform/config.tf")
+p = Path(sys.argv[1])
 text = p.read_text()
 
 s3_block = """  backend "s3" {
