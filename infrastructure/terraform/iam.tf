@@ -16,6 +16,7 @@ data "aws_iam_policy_document" "sprawdzamszlak_db_policy_doc" {
     resources = [
       aws_dynamodb_table.sprawdzamszlak_table.arn,
       aws_dynamodb_table.sprawdzamszlak_routes_table.arn,
+      aws_dynamodb_table.strava_oauth_states_table.arn,
     ]
   }
 
@@ -27,6 +28,29 @@ data "aws_iam_policy_document" "sprawdzamszlak_db_policy_doc" {
     ]
     resources = [
       "${aws_s3_bucket.geojson_bucket.arn}/trails/*",
+    ]
+  }
+
+  # ADR-007: Lambda reads owner-managed Strava credentials (client_id,
+  # client_secret, verify_token) from Parameter Store and writes the
+  # access/refresh token tuple it receives from Strava. Verify_token has
+  # write scope too — `pnpm strava:subscribe` uploads it via Lambda for
+  # consistency with how it gets read at webhook handshake time.
+  statement {
+    sid     = "AllowAppToReadStravaParams"
+    effect  = "Allow"
+    actions = ["ssm:GetParameter", "ssm:GetParameters"]
+    resources = [
+      "arn:aws:ssm:eu-west-1:${data.aws_caller_identity.current.account_id}:parameter/sprawdzamszlak/strava/*",
+    ]
+  }
+
+  statement {
+    sid     = "AllowAppToWriteStravaTokens"
+    effect  = "Allow"
+    actions = ["ssm:PutParameter"]
+    resources = [
+      "arn:aws:ssm:eu-west-1:${data.aws_caller_identity.current.account_id}:parameter/sprawdzamszlak/strava/tokens",
     ]
   }
 }
