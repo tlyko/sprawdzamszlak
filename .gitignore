@@ -1,13 +1,47 @@
+# Dependencies
 node_modules/
-.next/
+.pnpm-store/
+
+# Build artifacts
 dist/
+build/
+.next/
+.turbo/
+out/
+
+# Env / secrets
 .env
 .env.local
 .env.*.local
-*.tfstate
-*.tfstate.backup
-.terraform/
-*.tfvars
+
+# Editor
+.idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
 .DS_Store
-sprawdzamszlak-frontend/
-sprawdzamszlak-infrastructure/
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+
+# Terraform
+infrastructure/terraform/.terraform/
+infrastructure/terraform/.terraform.lock.hcl
+infrastructure/terraform/*.tfstate
+infrastructure/terraform/*.tfstate.backup
+infrastructure/terraform/*.tfvars
+!infrastructure/terraform/*.example.tfvars
+infrastructure/terraform/dist/
+infrastructure/terraform/lambda.zip
+
+# TypeScript build info
+*.tsbuildinfo
+
+# Coverage
+coverage/
+
+# Tests
+.nyc_output/
