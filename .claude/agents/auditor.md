@@ -117,7 +117,7 @@ Jeśli oba repo nie są zamontowane w tym samym katalogu nadrzędnym, **zatrzyma
 ```
 
 ## Zasady
-
+- **Komendy git w innych repo:** używaj `git -C /path/to/repo <command>` zamiast `cd /path/to/repo && git <command>`. Pierwszy wzorzec nie wywołuje permission warningów, drugi tak.
 - **Nie zgaduj.** Jeśli nie widzisz w kodzie — pisz "nie wiem, sprawdź X".
 - **Konkretne ścieżki, konkretne linie** — nie "gdzieś w lambdach", tylko `lambdas/upload/index.js:42`.
 - **Bez modyfikacji.** Nawet drobnych. Tylko opis.
