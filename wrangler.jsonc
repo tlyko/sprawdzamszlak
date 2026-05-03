@@ -1,0 +1,16 @@
+{
+  // Cloudflare Workers + Static Assets config for the frontend.
+  // The build step (`pnpm -F sprawdzamszlak-frontend build`) produces a
+  // pure-static export under apps/web/out/, which Cloudflare serves directly.
+  //
+  // Worker name must match the one set in the Cloudflare dashboard. If they
+  // diverge, deploy fails with "Worker not found".
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "sprawdzamszlak",
+  "compatibility_date": "2026-05-03",
+
+  "assets": {
+    "directory": "./apps/web/out",
+    "not_found_handling": "404-page"
+  }
+}
