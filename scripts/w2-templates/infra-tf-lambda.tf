@@ -40,7 +40,7 @@ resource "aws_apigatewayv2_api" "http_api" {
   cors_configuration {
     allow_origins = [
       "https://sprawdzamszlak.pl",
-      "https://sprawdzamszlak-frontend.pages.dev",
+      "https://sprawdzamszlak.tlyko94.workers.dev",
       "http://localhost:3000",
     ]
     allow_methods = ["GET", "OPTIONS"]
