@@ -6,12 +6,17 @@
   "scripts": {
     "build": "node --experimental-strip-types build.ts",
     "typecheck": "tsc --noEmit",
-    "dev": "node --experimental-strip-types --watch build.ts"
+    "dev": "node --experimental-strip-types --watch build.ts",
+    "seed": "node --experimental-strip-types scripts/seed.ts"
   },
   "dependencies": {
     "@sprawdzamszlak/shared": "workspace:*"
   },
   "devDependencies": {
+    "@aws-sdk/client-dynamodb": "^3.700.0",
+    "@aws-sdk/client-s3": "^3.700.0",
+    "@aws-sdk/lib-dynamodb": "^3.700.0",
+    "@aws-sdk/s3-request-presigner": "^3.700.0",
     "@types/aws-lambda": "^8.10.145",
     "@types/node": "^22.0.0",
     "esbuild": "^0.24.0",

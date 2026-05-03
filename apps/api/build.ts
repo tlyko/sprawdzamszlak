@@ -1,9 +1,12 @@
 // Bundle apps/api/src/handler.ts → apps/api/dist/handler.js for AWS Lambda.
-// Run with `corepack pnpm -F api build` (or `pnpm -F api build` after corepack enable).
 //
-// Output is a single ESM bundle that targets Node 22 (Lambda runtime nodejs22.x).
-// All deps except `aws-sdk` v3 are bundled — Lambda's Node runtime ships with
-// AWS SDK v3 already, so we externalize it to keep the zip small.
+// Run via `corepack pnpm -F api build` (or `pnpm -F api build` after corepack enable).
+//
+// Output is a single ESM bundle targeting Node 22 (Lambda runtime nodejs22.x).
+// `@aws-sdk/*` is provided by the Lambda runtime, so we externalize it to keep
+// the deployable zip small (~15 KB vs ~3 MB).
+//
+// `@sprawdzamszlak/shared` is bundled in (workspace package, not in runtime).
 
 import { build } from 'esbuild';
 import { fileURLToPath } from 'node:url';
@@ -19,10 +22,11 @@ await build({
   target: 'node22',
   format: 'esm',
   banner: {
-    // ESM doesn't have __dirname/require by default; some deps assume them.
+    // ESM bundles don't have __dirname/require; some deps (e.g. legacy
+    // CommonJS deps via interop) assume them.
     js: "import { createRequire } from 'module'; const require = createRequire(import.meta.url);",
   },
-  // Lambda's nodejs22.x runtime provides @aws-sdk/* — don't bundle to save size.
+  // Provided by the Node 22 Lambda runtime.
   external: ['@aws-sdk/*'],
   minify: true,
   sourcemap: true,
