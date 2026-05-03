@@ -39,9 +39,10 @@ Proper browser admin panel is **post-season backlog** (after 2026-06-15). When i
 
 ### Other architectural commitments (from ADRs)
 - **ADR-001** Option A modified: stay on AWS (Lambda + DDB + S3 + API GW), TS instead of Python, monorepo via pnpm workspaces.
-- **ADR-003** Strava webhook: Parameter Store SecureString for tokens, async hand-off via DDB Streams + fetcher Lambda, idempotency via conditional PutItem on `event_id`. Sport_type allow-list narrowed to `Hike`/`Walk`/`RockClimbing`/`BackcountrySki`/`AlpineSki` (owner also logs gym/road running/road cycling — those must drop silently). Note: that allow-list edit is on the closed PR #21 branch; needs to land separately when W4 starts.
+- **ADR-003** Strava webhook: Parameter Store SecureString for tokens, async hand-off via DDB Streams + fetcher Lambda, idempotency via conditional PutItem on `event_id`. Sport_type allow-list `SPORT_TYPE_ALLOWLIST` lives in `packages/shared`: `Hike`/`Walk`/`RockClimbing`/`BackcountrySki`/`AlpineSki`.
 - **ADR-004** GPX parser: `@tmcw/togeojson` + `@xmldom/xmldom` shim. SAFE_FILENAME regex shared between admin upload and Strava import.
 - **ADR-005** GHA + S3+DDB backend with AWS OIDC; TFC workspace decommissioned manually after first successful GHA apply.
+- **ADR-007** Strava OAuth start page: public static page on `apps/web/strava` + two API routes (`/strava/oauth/start` mints CSRF state in DDB, `/strava/oauth/callback` validates state, exchanges code, stores tokens in Parameter Store). Web layer never touches tokens.
 
 ## Next milestone — W4 Strava integration (deadline 2026-06-15)
 
@@ -52,17 +53,17 @@ Per ADR-001 sprint plan:
 - W6 (2026-06-06 → 2026-06-13): soak time, bug fixes
 
 W4 components to build:
-1. Lambda routes: `GET /strava/oauth/callback`, `GET /strava/webhook` (subscription handshake), `POST /strava/webhook` (events).
+1. Lambda routes: `GET /strava/oauth/start`, `GET /strava/oauth/callback`, `GET /strava/webhook` (subscription handshake), `POST /strava/webhook` (events). See ADR-007 for the OAuth pair.
 2. Token storage: SSM Parameter Store SecureString.
-3. DDB events table for idempotency.
-4. DDB Streams trigger → second Lambda (fetcher) for the heavy GPX-pull work.
-5. ADR-003's sport_type allow-list constant in `packages/shared`.
+3. DDB tables: `sprawdzamszlak-strava-events` (idempotency, ADR-003) and `sprawdzamszlak-strava-oauth-states` (CSRF nonces, 10-min TTL, ADR-007).
+4. DDB Streams trigger on the events table → second Lambda (fetcher) for the heavy GPX-pull work.
+5. Static pages on `apps/web`: `/strava` (connect button) and `/strava/connected` (status banner from `?status=ok|error`).
 6. CLI helper `pnpm -F api strava:subscribe` to register the webhook subscription with Strava.
 
-Before W4 implementation:
-- Re-port ADR-003 sport_type allow-list update from the closed PR #21 branch.
-- Decide where Strava OAuth flow lives now that we don't have an admin panel — likely a dedicated `/strava/oauth/start` page on `apps/web` (no auth gate; the OAuth flow itself authenticates the request through Strava).
-- ADR-002 (admin auth) → mark as superseded / on-hold; the OAuth callback page is single-user-by-Strava-account, not by admin password.
+Pre-W4 housekeeping (done 2026-05-03):
+- ✅ `SPORT_TYPE_ALLOWLIST` re-ported to `packages/shared/src/index.ts`.
+- ✅ ADR-002 marked Superseded by ADR-007.
+- ✅ ADR-007 written; ADR-003 D5 narrowed to point at it.
 
 ## Operational items still open
 

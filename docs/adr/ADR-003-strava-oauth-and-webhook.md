@@ -21,7 +21,7 @@ Strava-side facts that constrain the design:
 User-side facts:
 
 - **Single user (Tomek)** for now — webhook handler can store everything keyed on a single Strava `athlete_id`.
-- **Activities of interest are mountain hikes** — filtering by `sport_type` to `Hike` / `TrailRun` / similar is fine; everything else (commute rides, gym) is dropped silently.
+- **Activities of interest are mountain hikes / climbs / ski tours** — filtering by `sport_type` to the allow-list in D2 is fine; everything else (commute rides, gym, road running) is dropped silently.
 - Tomek wants the activity on the map "natychmiast po przejściu szlaku" → real-time on event, not a daily polling job.
 
 ## Decision drivers
@@ -60,7 +60,7 @@ Asynchronous side processes the activity:
   - Refresh access token if expired (timestamp comparison locally; refresh API call only when needed).
   - `GET /activities/{id}` for metadata (name, sport_type, start_date, distance, elevation_gain).
   - `GET /activities/{id}/streams?keys=latlng,altitude,time,distance` for the GPS track.
-  - Filter: drop if `sport_type` not in {`Hike`, `TrailRun`, `Walk`, `AlpineSki`, `BackcountrySki`}.
+  - Filter: drop if `sport_type` not in `SPORT_TYPE_ALLOWLIST` (`packages/shared`): {`Hike`, `Walk`, `RockClimbing`, `BackcountrySki`, `AlpineSki`}. `TrailRun` was excluded — owner uses it for road runs, not trail runs; the off-piste/climbing/ski-touring set is what should land on the map.
   - Convert latlng stream → GeoJSON LineString.
   - PUT GeoJSON to S3 (`trails/strava-{activity_id}.geojson`).
   - PUT row to `sprawdzamszlak-routes` table (`id = strava-{activity_id}`, `name`, `type = "off-piste"` or based on heuristics, `filename`).
@@ -85,13 +85,7 @@ We do not manage subscription via Terraform — it's a one-time manual act per e
 
 ### D5 — OAuth flow location
 
-The OAuth flow lives in `apps/web/admin/strava` (Next.js, basic-auth gated per ADR-002), not in `apps/api`. Rationale:
-
-- Tomek goes through OAuth once. No need for a stateless callback handler.
-- Cookie-based session affinity from the admin panel makes the redirect_uri verification simpler.
-- Lambda would need to add HTML responses for the consent flow — out of scope for an API.
-
-The `apps/web` route server-side calls `apps/api/strava/oauth/exchange` (admin-auth) which writes tokens into Parameter Store. Web never sees the tokens.
+**Superseded by ADR-007 on 2026-05-03.** The original D5 placed the flow under `apps/web/admin/strava` gated by basic auth; both the admin panel and ADR-002 are retracted. The current decision: a public static page on `apps/web` (`/strava`) is the entry point, and `apps/api` owns `GET /strava/oauth/start` (mints CSRF state, redirects to Strava) and `GET /strava/oauth/callback` (validates state, exchanges code, stores tokens in Parameter Store, redirects to `/strava/connected`). Token never travels through the web layer — same property the original D5 promised. See ADR-007 for full design.
 
 ## Consequences
 

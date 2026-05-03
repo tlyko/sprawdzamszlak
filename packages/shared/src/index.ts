@@ -82,6 +82,20 @@ export type RouteWithUrl = z.infer<typeof RouteWithUrlSchema>;
 // ---------------------------------------------------------------------------
 export const StravaActivityIdSchema = z.string().regex(/^[0-9]{1,20}$/);
 
+// Strava sport_type values that should be imported as routes.
+// Owner also logs gym workouts, road running, and road cycling — those
+// drop silently in the fetcher Lambda. See ADR-003 D2.
+export const SPORT_TYPE_ALLOWLIST = [
+  'Hike',
+  'Walk',
+  'RockClimbing',
+  'BackcountrySki',
+  'AlpineSki',
+] as const;
+
+export const StravaSportTypeSchema = z.enum(SPORT_TYPE_ALLOWLIST);
+export type StravaSportType = z.infer<typeof StravaSportTypeSchema>;
+
 // Concrete schema is filled in W4 once Strava API shapes are pinned.
 export const StravaActivitySchema = z.object({
   id: StravaActivityIdSchema,
