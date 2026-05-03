@@ -157,7 +157,10 @@ data "aws_iam_policy_document" "gha_terraform_perms" {
     resources = ["arn:aws:iam::214598715232:oidc-provider/token.actions.githubusercontent.com"]
   }
 
-  # DynamoDB — the two app tables
+  # DynamoDB — all sprawdzamszlak app tables. Wildcard on the project prefix
+  # so adding a table (e.g. strava-oauth-states, strava-events) doesn't
+  # require a separate CICD change. The tfstate-locks table has narrower
+  # actions covered by TerraformStateLock above.
   statement {
     sid    = "DynamoDB"
     effect = "Allow"
@@ -175,8 +178,7 @@ data "aws_iam_policy_document" "gha_terraform_perms" {
       "dynamodb:ListTagsOfResource",
     ]
     resources = [
-      "arn:aws:dynamodb:eu-west-1:214598715232:table/sprawdzamszlak-data",
-      "arn:aws:dynamodb:eu-west-1:214598715232:table/sprawdzamszlak-routes",
+      "arn:aws:dynamodb:eu-west-1:214598715232:table/sprawdzamszlak-*",
     ]
   }
 
@@ -222,6 +224,25 @@ data "aws_iam_policy_document" "gha_terraform_perms" {
     effect    = "Allow"
     actions   = ["logs:*"]
     resources = ["arn:aws:logs:eu-west-1:214598715232:log-group:*"]
+  }
+
+  # API GW access-logging requires logs:CreateLogDelivery (and friends),
+  # which are global actions and only support resource "*" — they cannot
+  # be scoped to a single log group ARN. Stage modifications fail without
+  # this when AWS re-validates the access_log_settings configuration.
+  statement {
+    sid    = "LogsDelivery"
+    effect = "Allow"
+    actions = [
+      "logs:CreateLogDelivery",
+      "logs:GetLogDelivery",
+      "logs:UpdateLogDelivery",
+      "logs:DeleteLogDelivery",
+      "logs:ListLogDeliveries",
+      "logs:DescribeResourcePolicies",
+      "logs:PutResourcePolicy",
+    ]
+    resources = ["*"]
   }
 
   # Cost Explorer + Budgets — global services. Wide ce:*/budgets:* is
