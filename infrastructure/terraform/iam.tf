@@ -1,6 +1,4 @@
 
-data "aws_caller_identity" "current" {}
-
 data "aws_iam_policy_document" "sprawdzamszlak_db_policy_doc" {
   statement {
     sid    = "AllowAppToAccessTable"
