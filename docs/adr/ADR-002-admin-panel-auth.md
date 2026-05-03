@@ -79,12 +79,12 @@ Cloudflare Access in front of `apps/web/admin/*` and `apps/api/admin/*` (the lat
 
 The implementation pattern in W3:
 
-- **Web (`apps/web/admin/*`)** — `middleware.ts` checks `Authorization` header against `ADMIN_USER`/`ADMIN_PASS` env vars; returns `401` with `WWW-Authenticate: Basic realm="admin"` if missing/wrong. The browser handles the prompt.
-- **API (`apps/api`, future `/admin/*` paths)** — same check inside the handler before any DDB write. Reuse a single `requireAdmin(event)` helper.
+- **Web (`apps/web/admin/*`)** — **the admin route is a regular static page**. The frontend was migrated to `output: 'export'` for Cloudflare Workers + Static Assets (W2 cutover, see ADR-001 acceptance log), which disables Next.js middleware. There is no server-side gate on the web layer; the page renders even for anonymous visitors but does nothing useful (no cached secrets, no admin data) without API credentials.
+- **API (`apps/api`, all `/admin/*` paths)** — the **only** auth boundary. Every admin handler calls `requireAdmin(event)` first; on miss returns `401 WWW-Authenticate: Basic realm="admin"`. The browser, on receiving 401 from a `fetch`, prompts the user once and replays the request with the `Authorization: Basic …` header. This standard browser flow fully replaces Next.js middleware for our case.
 - **Secret value** — generated with `openssl rand -base64 32` (43 chars, URL-safe), stored only in:
   - 1Password vault as the source of truth
   - Lambda env var (set via Terraform from a `TF_VAR_admin_pass` env var that lives outside repo)
-  - Cloudflare Pages env var (set via dashboard)
+  - **NOT in the frontend env**, because the frontend doesn't validate; it only forwards browser-prompted credentials.
 
 ## Consequences
 

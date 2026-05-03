@@ -11,8 +11,8 @@
     "build": "pnpm -r run build",
     "typecheck": "pnpm -r run typecheck",
     "lint": "pnpm -r run lint",
-    "dev:web": "pnpm -F web dev",
-    "dev:api": "pnpm -F api dev"
+    "dev:web": "pnpm -F sprawdzamszlak-frontend dev",
+    "dev:api": "pnpm -F @sprawdzamszlak/api dev"
   },
   "devDependencies": {
     "prettier": "^3.3.0",

@@ -1,7 +1,7 @@
 
 data "archive_file" "lambda_zip" {
   type        = "zip"
-  source_dir  = "${path.module}/src"
+  source_dir  = "${path.module}/../../apps/api/dist"
   output_path = "${path.module}/dist/lambda.zip"
 }
 
@@ -16,8 +16,8 @@ resource "aws_lambda_function" "sprawdzamszlak_lambda" {
   source_code_hash = data.archive_file.lambda_zip.output_base64sha256
   role             = aws_iam_role.sprawdzamszlak_app_role.arn
 
-  handler     = "lambda_function.lambda_handler"
-  runtime     = "python3.13"
+  handler     = "handler.handler"
+  runtime     = "nodejs22.x"
   timeout     = 10
   memory_size = 256
 
@@ -40,7 +40,7 @@ resource "aws_apigatewayv2_api" "http_api" {
   cors_configuration {
     allow_origins = [
       "https://sprawdzamszlak.pl",
-      "https://sprawdzamszlak-frontend.pages.dev",
+      "https://sprawdzamszlak.tlyko94.workers.dev",
       "http://localhost:3000",
     ]
     allow_methods = ["GET", "OPTIONS"]
