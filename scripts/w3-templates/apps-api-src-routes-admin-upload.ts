@@ -21,8 +21,8 @@ import {
 } from '@aws-sdk/lib-dynamodb';
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 import { MAX_GPX_BYTES, RouteUploadInputSchema } from '@sprawdzamszlak/shared';
-import { parseMultipart } from './lib/multipart.js';
-import { convertGpxToGeoJson } from './lib/gpx.js';
+import { parseMultipart } from '../lib/multipart.js';
+import { convertGpxToGeoJson } from '../lib/gpx.js';
 
 const REGION = process.env.MY_AWS_REGION ?? 'eu-west-1';
 const ROUTES_TABLE = process.env.DYNAMODB_ROUTES_TABLE_NAME ?? '';

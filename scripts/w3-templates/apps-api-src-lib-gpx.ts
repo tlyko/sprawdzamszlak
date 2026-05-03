@@ -8,29 +8,31 @@
 
 import { gpx as togeoJsonGpx } from '@tmcw/togeojson';
 import { DOMParser } from '@xmldom/xmldom';
+import type { FeatureCollection, LineString, Position } from 'geojson';
 
 export interface GpxConversion {
-  geojson: GeoJSON.FeatureCollection<GeoJSON.LineString>;
+  geojson: FeatureCollection<LineString>;
   pointCount: number;
 }
 
 export function convertGpxToGeoJson(rawGpx: string): GpxConversion {
-  let xmlDoc: Document;
+  let xmlDoc: unknown;
   try {
-    xmlDoc = new DOMParser({
-      errorHandler: { warning: () => {}, error: () => {}, fatalError: () => {} },
-    }).parseFromString(rawGpx, 'application/xml') as unknown as Document;
+    xmlDoc = new DOMParser().parseFromString(rawGpx, 'application/xml');
   } catch (err) {
     throw new Error(`GPX parse failed: ${(err as Error).message}`);
   }
 
-  const fc = togeoJsonGpx(xmlDoc) as GeoJSON.FeatureCollection;
+  // togeojson is typed against the browser DOM `Document`; xmldom is
+  // API-compatible at runtime but the types don't unify.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const fc = togeoJsonGpx(xmlDoc as any) as FeatureCollection;
   if (!fc || !fc.features || fc.features.length === 0) {
     throw new Error('GPX has no features');
   }
 
   // Collect all LineString coordinates from track features.
-  const allCoords: GeoJSON.Position[] = [];
+  const allCoords: Position[] = [];
   for (const feat of fc.features) {
     const geom = feat.geometry;
     if (!geom) continue;
@@ -48,10 +50,13 @@ export function convertGpxToGeoJson(rawGpx: string): GpxConversion {
     throw new Error('GPX track has fewer than 2 points');
   }
 
-  // Strip time-series properties; keep only coordinates.
-  const cleanedCoords = allCoords.map((c) => {
-    if (c.length >= 3) return [c[0], c[1], c[2]];
-    return [c[0], c[1]];
+  // Strip time-series properties; keep only [lon, lat, ele?].
+  const cleanedCoords: Position[] = allCoords.map((c) => {
+    const [lon, lat, ele] = c;
+    if (lon === undefined || lat === undefined) {
+      throw new Error('GPX coordinate missing lon or lat');
+    }
+    return ele !== undefined ? [lon, lat, ele] : [lon, lat];
   });
 
   return {

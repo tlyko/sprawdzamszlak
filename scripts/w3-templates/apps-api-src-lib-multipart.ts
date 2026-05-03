@@ -56,16 +56,17 @@ export function parseMultipart(body: Buffer, contentType: string): MultipartResu
 
     const disposition = headers['content-disposition'] ?? '';
     const nameMatch = /name="([^"]+)"/.exec(disposition);
-    if (!nameMatch) {
+    const name = nameMatch?.[1];
+    if (!name) {
       offset = nextBoundary < 0 ? body.length : nextBoundary;
       continue;
     }
-    const name = nameMatch[1];
 
     const filenameMatch = /filename="([^"]*)"/.exec(disposition);
-    if (filenameMatch && filenameMatch[1]) {
+    const filename = filenameMatch?.[1];
+    if (filename) {
       result.files[name] = {
-        filename: filenameMatch[1],
+        filename,
         contentType: headers['content-type'] ?? 'application/octet-stream',
         data: body.slice(partStart, partEnd),
       };

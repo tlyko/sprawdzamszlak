@@ -1,15 +1,9 @@
-// W2: TypeScript rewrite of the Python lambda_function.py.
+// Lambda entry point. Routes:
+//   GET  /            → list peaks
+//   GET  /routes      → list routes + presigned S3 URLs
+//   POST /admin/upload → admin GPX upload (basic auth required)
 //
-// Behaviour parity vs Python:
-//   - GET /         → list peaks (DDB Scan over sprawdzamszlak-data)
-//   - GET /routes   → list routes + presigned S3 URLs (DDB Scan over sprawdzamszlak-routes)
-//   - other         → 404
-//
-// Improvements applied at rewrite time (security sweep 2026-05-01 issues):
-//   - H1: 500 response carries opaque request id, never raw boto3/SDK error string
-//   - H3: filename allowlist regex enforced before S3 presigned URL generation
-//   - H7: Scan paginates with Limit + LastEvaluatedKey forwarded to caller as cursor
-//   - H2: response payload validated through zod schemas from @sprawdzamszlak/shared
+// Behaviour parity with W2 + new admin route added in W3.
 
 import type {
   APIGatewayProxyEventV2,
@@ -27,10 +21,9 @@ import {
   type RouteWithUrl,
   SAFE_FILENAME,
 } from '@sprawdzamszlak/shared';
+import { requireAdmin } from './lib/auth.js';
+import { handleAdminUpload } from './routes/admin-upload.js';
 
-// ---------------------------------------------------------------------------
-// Env validation at cold start
-// ---------------------------------------------------------------------------
 function envOrThrow(name: string): string {
   const value = process.env[name];
   if (!value) throw new Error(`Missing env var ${name}`);
@@ -42,18 +35,11 @@ const PEAKS_TABLE = envOrThrow('DYNAMODB_TABLE_NAME');
 const ROUTES_TABLE = envOrThrow('DYNAMODB_ROUTES_TABLE_NAME');
 const S3_BUCKET = envOrThrow('S3_BUCKET_NAME');
 
-// ---------------------------------------------------------------------------
-// AWS clients (created once at cold start, reused across invocations)
-// ---------------------------------------------------------------------------
 const ddb = DynamoDBDocumentClient.from(new DynamoDBClient({ region: REGION }), {
   marshallOptions: { removeUndefinedValues: true },
 });
 const s3 = new S3Client({ region: REGION });
 
-// ---------------------------------------------------------------------------
-// Shared response shape — let API Gateway own CORS, we only set Content-Type
-// (CORS is configured in cors_configuration on the HTTP API; do not duplicate)
-// ---------------------------------------------------------------------------
 const RESPONSE_HEADERS: Record<string, string> = {
   'Content-Type': 'application/json',
   Vary: 'Origin',
@@ -64,15 +50,10 @@ const json = (statusCode: number, body: unknown): APIGatewayProxyResultV2 => ({
   headers: RESPONSE_HEADERS,
   body: JSON.stringify(body),
 });
-
 const error = (statusCode: number, message: string): APIGatewayProxyResultV2 =>
   json(statusCode, { message });
 
-// ---------------------------------------------------------------------------
-// Scan helper — paginated, capped, returns parsed items (not raw DDB shape)
-// ---------------------------------------------------------------------------
 const SCAN_PAGE_LIMIT = 200;
-
 async function scanAll<T>(table: string, parse: (item: unknown) => T): Promise<T[]> {
   const items: T[] = [];
   let cursor: Record<string, unknown> | undefined;
@@ -88,7 +69,6 @@ async function scanAll<T>(table: string, parse: (item: unknown) => T): Promise<T
       try {
         items.push(parse(raw));
       } catch (err) {
-        // Drop a single malformed row rather than failing the whole request.
         console.warn('Skipped malformed item', { table, err });
       }
     }
@@ -97,9 +77,27 @@ async function scanAll<T>(table: string, parse: (item: unknown) => T): Promise<T
   return items;
 }
 
-// ---------------------------------------------------------------------------
-// Handler
-// ---------------------------------------------------------------------------
+async function enrichWithPresignedUrls(routes: Route[]): Promise<RouteWithUrl[]> {
+  const enriched: RouteWithUrl[] = [];
+  for (const route of routes) {
+    if (!SAFE_FILENAME.test(route.filename)) {
+      console.warn('Skipping route with bad filename', { id: route.id });
+      continue;
+    }
+    try {
+      const url = await getSignedUrl(
+        s3,
+        new GetObjectCommand({ Bucket: S3_BUCKET, Key: `trails/${route.filename}` }),
+        { expiresIn: 900 },
+      );
+      enriched.push({ ...route, geojson_url: url });
+    } catch (err) {
+      console.warn('Failed to presign URL for route', { id: route.id, err });
+    }
+  }
+  return enriched;
+}
+
 export const handler = async (
   event: APIGatewayProxyEventV2,
   context: Context,
@@ -108,55 +106,28 @@ export const handler = async (
     const method = event.requestContext.http.method;
     const path = event.requestContext.http.path;
 
-    // Route 1: GET / → list peaks
+    // Public GETs
     if (method === 'GET' && path.endsWith('/')) {
       const peaks = await scanAll(PEAKS_TABLE, (raw) => PeakSchema.parse(raw));
       return json(200, peaks);
     }
-
-    // Route 2: GET /routes → list routes + presigned S3 URLs
     if (method === 'GET' && path.endsWith('/routes')) {
       const routes = await scanAll(ROUTES_TABLE, (raw) => RouteSchema.parse(raw));
       const enriched = await enrichWithPresignedUrls(routes);
       return json(200, enriched);
     }
 
+    // Admin
+    if (method === 'POST' && (path.endsWith('/admin/upload') || path.endsWith('/admin/upload/'))) {
+      const denied = requireAdmin(event);
+      if (denied) return denied;
+      return await handleAdminUpload(event);
+    }
+
     return error(404, `Path ${method} ${path} not found`);
   } catch (err) {
-    // H1: do not leak error.message to the client. Log internally with a
-    // request id that the caller can quote in support.
     const requestId = context.awsRequestId ?? 'unknown';
     console.error('Handler crashed', { requestId, err });
     return error(500, `Internal error (id=${requestId})`);
   }
 };
-
-// ---------------------------------------------------------------------------
-// Presigned URL enrichment — defense-in-depth filename validation (H3)
-// ---------------------------------------------------------------------------
-async function enrichWithPresignedUrls(routes: Route[]): Promise<RouteWithUrl[]> {
-  const enriched: RouteWithUrl[] = [];
-  for (const route of routes) {
-    if (!SAFE_FILENAME.test(route.filename)) {
-      // Should be impossible because RouteSchema already validated this, but
-      // belt-and-braces in case schema is loosened later.
-      console.warn('Skipping route with bad filename', { id: route.id });
-      continue;
-    }
-    try {
-      const url = await getSignedUrl(
-        s3,
-        new GetObjectCommand({
-          Bucket: S3_BUCKET,
-          Key: `trails/${route.filename}`,
-        }),
-        { expiresIn: 900 }, // 15 minutes
-      );
-      enriched.push({ ...route, geojson_url: url });
-    } catch (err) {
-      // Skip a single bad route rather than failing the whole list.
-      console.warn('Failed to presign URL for route', { id: route.id, err });
-    }
-  }
-  return enriched;
-}

@@ -27,6 +27,8 @@ resource "aws_lambda_function" "sprawdzamszlak_lambda" {
       DYNAMODB_ROUTES_TABLE_NAME = local.sprawdzamszlak_routes_table.name
       S3_BUCKET_NAME             = aws_s3_bucket.geojson_bucket.id
       MY_AWS_REGION              = "eu-west-1"
+      ADMIN_USER                 = "tomek"
+      ADMIN_PASS                 = var.admin_pass
     }
   }
 
@@ -43,8 +45,8 @@ resource "aws_apigatewayv2_api" "http_api" {
       "https://sprawdzamszlak.tlyko94.workers.dev",
       "http://localhost:3000",
     ]
-    allow_methods = ["GET", "OPTIONS"]
-    allow_headers = ["Content-Type"]
+    allow_methods = ["GET", "POST", "OPTIONS"]
+    allow_headers = ["Content-Type", "Authorization"]
     max_age       = 3600
   }
 }
@@ -70,6 +72,12 @@ resource "aws_apigatewayv2_route" "get_routes_route" {
   target    = "integrations/${aws_apigatewayv2_integration.lambda_integration.id}"
 }
 
+resource "aws_apigatewayv2_route" "post_admin_upload_route" {
+  api_id    = aws_apigatewayv2_api.http_api.id
+  route_key = "POST /admin/upload"
+  target    = "integrations/${aws_apigatewayv2_integration.lambda_integration.id}"
+}
+
 resource "aws_apigatewayv2_deployment" "main_deployment" {
   api_id = aws_apigatewayv2_api.http_api.id
 
@@ -77,6 +85,7 @@ resource "aws_apigatewayv2_deployment" "main_deployment" {
     redeployment_hash = md5(jsonencode([
       aws_apigatewayv2_route.get_route,
       aws_apigatewayv2_route.get_routes_route,
+      aws_apigatewayv2_route.post_admin_upload_route,
       aws_apigatewayv2_integration.lambda_integration
     ]))
   }
