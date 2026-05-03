@@ -45,3 +45,9 @@ coverage/
 
 # Tests
 .nyc_output/
+
+# Legacy side-by-side repos archived after monorepo extract (W1)
+# These directories may still be present on the developer's disk but are not
+# tracked here — content lives in git history of the merged frontend/api split.
+/sprawdzamszlak-frontend/
+/sprawdzamszlak-infrastructure/
