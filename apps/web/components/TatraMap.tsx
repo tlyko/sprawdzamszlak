@@ -1,10 +1,10 @@
 // This is components/TatraMap.tsx
 'use client'; 
 
-import { useState, useEffect, Dispatch, SetStateAction } from 'react';
+import { useState, useEffect, type Dispatch, type SetStateAction } from 'react';
 import { MapContainer, TileLayer, CircleMarker, Popup, useMapEvents, GeoJSON } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
-import { Layer } from 'leaflet'; // NEW: Import Layer type for event handling
+import type { Layer } from 'leaflet';
 
 // Your working AWS API Gateway URL (base path)
 const AWS_API_URL_BASE = "https://akoz890bg6.execute-api.eu-west-1.amazonaws.com/prod"; 
