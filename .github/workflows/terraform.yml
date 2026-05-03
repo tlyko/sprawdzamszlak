@@ -14,6 +14,10 @@ on:
       - 'apps/api/**'
       - 'packages/shared/**'
       - '.github/workflows/terraform.yml'
+  workflow_dispatch:
+    # Manual trigger (gh workflow run terraform.yml --ref main).
+    # Useful as a no-op smoke test after CI/CD migration, or when the
+    # paths filter would otherwise skip a run we want to force.
 
 # Concurrency: one run at a time per branch. Cancel queued runs on the same
 # PR but not on main (apply must finish).
