@@ -8,9 +8,7 @@
     "node": ">=22.0.0"
   },
   "scripts": {
-    "build": "pnpm -F sprawdzamszlak-frontend build",
-    "build:api": "pnpm -F @sprawdzamszlak/api build",
-    "build:all": "pnpm -r run build",
+    "build": "pnpm -r run build",
     "typecheck": "pnpm -r run typecheck",
     "lint": "pnpm -r run lint",
     "dev:web": "pnpm -F sprawdzamszlak-frontend dev",

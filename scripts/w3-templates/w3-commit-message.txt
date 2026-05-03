@@ -1,0 +1,35 @@
+chore(w3): admin panel skeleton + GPX upload endpoint
+
+Adds the manual-upload flow per ADR-004:
+  POST /admin/upload (basic auth, multipart) → parse GPX → GeoJSON → S3
+  + DynamoDB metadata row.
+
+Authentication (per ADR-002 SSG-revision):
+  - Backend-only HTTP Basic check via ADMIN_USER / ADMIN_PASS env vars.
+  - Web side has no middleware (output:'export' disables it on Cloudflare
+    Workers + Static Assets); browser handles 401 → Basic prompt → replay
+    automatically when the user submits the upload form.
+
+Backend layout:
+  apps/api/src/lib/auth.ts        — requireAdmin(event), timing-safe compare
+  apps/api/src/lib/multipart.ts   — minimal multipart/form-data parser, no deps
+  apps/api/src/lib/gpx.ts         — GPX→GeoJSON via @tmcw/togeojson + @xmldom/xmldom
+  apps/api/src/routes/admin-upload.ts — 8-step ordered handler with rollback
+  apps/api/src/handler.ts         — dispatcher extended with /admin/upload route
+
+Frontend layout:
+  apps/web/app/admin/page.tsx
+  apps/web/app/admin/upload/page.tsx — client-side fetch, no creds stored
+
+Shared schemas:
+  packages/shared/src/index.ts — RouteUploadInputSchema, MAX_GPX_BYTES,
+  STRAVA_PREFIX (collision guard), centralized SLUG_REGEX.
+
+Infrastructure:
+  infrastructure/terraform/lambda.tf — POST /admin/upload route, CORS
+    allow_methods += POST, allow_headers += Authorization, ADMIN_USER /
+    ADMIN_PASS env vars on the Lambda.
+  infrastructure/terraform/variables.tf — sensitive admin_pass variable.
+  Owner sets TF_VAR_admin_pass before terraform apply; never committed.
+
+ADR-002 was revised in-place to document the SSG limitation.
