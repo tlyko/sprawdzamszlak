@@ -1,0 +1,25 @@
+# Security headers for Cloudflare Workers + Static Assets (issue #7).
+#
+# Static export means next.config.ts `headers()` is a no-op (it requires
+# the Next server). Cloudflare reads `_headers` from the assets root and
+# serves the listed headers on matching responses.
+#
+# CSP allowlist:
+#   - script-src 'unsafe-inline' is unavoidable for static-export Next.js;
+#     hydration scripts are inlined without nonces. Migrating to nonces
+#     would mean dropping `output: 'export'`.
+#   - style-src 'unsafe-inline' covers Tailwind's inline styles + leaflet's
+#     JS-injected style attributes.
+#   - img-src includes data: for leaflet's vector marker icons; OSM tile
+#     subdomains (a/b/c.tile.openstreetmap.org) covered by wildcard.
+#   - connect-src lists every cross-origin we fetch: API GW + S3 (presigned
+#     GeoJSON URLs).
+#   - font-src 'self' — Fraunces is self-hosted via next/font.
+
+/*
+  Strict-Transport-Security: max-age=63072000; includeSubDomains; preload
+  X-Frame-Options: DENY
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(), interest-cohort=()
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://*.tile.openstreetmap.org; connect-src 'self' https://akoz890bg6.execute-api.eu-west-1.amazonaws.com https://sprawdzamszlak-trails-storage-214598715232.s3.eu-west-1.amazonaws.com; font-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'; upgrade-insecure-requests
