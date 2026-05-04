@@ -128,12 +128,12 @@ body {
   min-height: 100vh;
 }
 
-/* The map's MapContainer ships an inline style={{ height: '100vh' }} which
-   we don't touch in PR 1. Override it here so it fills the slot between
-   header and footer instead of overflowing. */
+/* The Leaflet container fills whatever slot it's placed in. The MapShell
+   ships inline style={{ height: '100%' }} (PR 3) so the page-level layout
+   decides the actual size — full right-column on desktop, ~40vh slab on
+   mobile. The background colour matches the page so any tile-load gap reads
+   as paper, not white. */
 .leaflet-container {
-  height: calc(100vh - var(--header-h) - var(--footer-h)) !important;
-  width: 100% !important;
   background: var(--surface-0);
 }
 

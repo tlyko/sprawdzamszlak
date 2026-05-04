@@ -1,26 +1,26 @@
 /*
- * Map shell — the MapContainer plus the data fetch + render orchestration.
+ * Map shell — the MapContainer plus map sub-layer composition.
+ *
+ * As of PR 3 ("logbook-home") the data fetch was hoisted to the page level
+ * (apps/web/app/page.tsx) — the trip list and the map both need the same
+ * `Trail[]`, and the page owns the `selectedTripId` that wires them together.
+ * This component is now a pure render of the map, driven by props.
  *
  * Responsibilities:
- *  1. Fetch peaks (`GET /`) and the trail manifest (`GET /routes`) from the
- *     API, then fan out to fetch each trail's GeoJSON from S3 in parallel.
- *  2. Track the live map zoom so children (PeakMarkers) can react.
- *  3. Compose the four map sub-layers: tile, peak markers, trail overlay,
- *     and (PR 3) the spotlight prop will be threaded through.
+ *  1. Render the MapContainer with tile layer, peak markers, and trail overlay.
+ *  2. Track the live map zoom so PeakMarkers can react.
+ *  3. On selectedTripId change, fly the map to that trail's bounds.
  *
- * Why the data fetch lives here rather than in the page:
- *  - The map is the only consumer today. Hoisting the fetch to `app/page.tsx`
- *    is on PR 3's plate (the logbook list also needs trail metadata) — at
- *    that point this component grows a `peaks` / `trails` prop and the fetch
- *    moves up. Until then keeping it co-located avoids prop-drilling for a
- *    consumer of one.
- *  - All of this is browser-only (`'use client'`), so SSR / streaming is not
- *    a concern.
+ * The `selectedTripId` prop is the seam for PR 3's logbook: when set, the
+ * trail-overlay spotlights that trail and dims the others (the prop is
+ * forwarded into TrailOverlay which already implements the visual side).
  */
 "use client";
 
 import { useEffect, useState } from "react";
-import { MapContainer, useMapEvents } from "react-leaflet";
+import { MapContainer, useMap, useMapEvents } from "react-leaflet";
+import L from "leaflet";
+import type { GeoJsonObject } from "geojson";
 import "leaflet/dist/leaflet.css";
 
 import { MapTileLayer } from "./tile-layer";
@@ -28,20 +28,26 @@ import { PeakMarkers } from "./peak-markers";
 import { TrailOverlay } from "./trail-overlay";
 import type { Peak, Trail, TrailGeoJson } from "./types";
 
-// Base URL for the API Gateway. Pulled from NEXT_PUBLIC_API_URL when set so
-// dev / prod can target different stages without recompiling. The hard-coded
-// fallback matches the prod stage and matches the old behaviour of the
-// previous TatraMap.tsx so removing the env var doesn't break the live site.
-const API_URL_BASE =
-  process.env.NEXT_PUBLIC_API_URL ??
-  "https://akoz890bg6.execute-api.eu-west-1.amazonaws.com/prod";
-
 const DEFAULT_CENTER: [number, number] = [49.2, 20.05];
 const DEFAULT_ZOOM = 11;
 
-// A thin child component that subscribes to map events and pushes the live
-// zoom into parent state. Co-located with MapShell because it's the only
-// place that needs it.
+// Padding (px) when flying to a trail's bounds. Matches §6 of the proposal.
+const FLY_TO_PADDING: [number, number] = [80, 80];
+const FLY_TO_DURATION_S = 1.2;
+
+export interface MapShellProps {
+  peaks: Peak[];
+  trails: Trail[];
+  trailGeoData: TrailGeoJson[];
+  // PR 3: which trail is currently spotlit. null/undefined = no spotlight.
+  selectedTripId?: string | null;
+  // Called when a trail is clicked directly on the map; lets the page sync
+  // the list selection with map clicks (bidirectional selection).
+  onTripSelect?: (trailId: string | null) => void;
+}
+
+// Subscribes to map events and pushes the live zoom into parent state. The
+// zoom value is consumed by PeakMarkers to decide which tier renders.
 function ZoomTracker({ onZoom }: { onZoom: (zoom: number) => void }) {
   const map = useMapEvents({
     zoomend: () => onZoom(map.getZoom()),
@@ -50,121 +56,95 @@ function ZoomTracker({ onZoom }: { onZoom: (zoom: number) => void }) {
   return null;
 }
 
-export function MapShell() {
-  const [peaks, setPeaks] = useState<Peak[]>([]);
-  const [trailManifest, setTrailManifest] = useState<Trail[]>([]);
-  const [trailGeoData, setTrailGeoData] = useState<TrailGeoJson[]>([]);
+// When selectedTripId changes, fly the map to that trail's bounding box. We
+// recompute the bounds here (rather than caching) because the GeoJSON payload
+// is small (a polyline) and L.geoJSON().getBounds() is O(n_points). Cheap.
+function FlyToSelected({
+  trails,
+  trailGeoData,
+  selectedTripId,
+}: {
+  trails: Trail[];
+  trailGeoData: TrailGeoJson[];
+  selectedTripId: string | null | undefined;
+}) {
+  const map = useMap();
+
+  useEffect(() => {
+    if (!selectedTripId) return;
+    const index = trails.findIndex((t) => t.id === selectedTripId);
+    if (index === -1) return;
+    const geoJson = trailGeoData[index];
+    if (!geoJson) return;
+
+    // The TrailGeoJson alias is intentionally loose (unknown) — see
+    // components/map/types.ts. Cast through unknown to GeoJsonObject for
+    // Leaflet's own GeoJSON layer constructor; the runtime accepts any
+    // valid GeoJSON, mismatches surface as an empty bounds we then skip.
+    const bounds = L.geoJSON(geoJson as GeoJsonObject).getBounds();
+    if (!bounds.isValid()) return;
+
+    // Respect prefers-reduced-motion: skip the flight, just fit.
+    const reducedMotion =
+      typeof window !== "undefined" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    if (reducedMotion) {
+      map.fitBounds(bounds, { padding: FLY_TO_PADDING, animate: false });
+    } else {
+      map.flyToBounds(bounds, {
+        padding: FLY_TO_PADDING,
+        duration: FLY_TO_DURATION_S,
+      });
+    }
+  }, [map, trails, trailGeoData, selectedTripId]);
+
+  return null;
+}
+
+export function MapShell({
+  peaks,
+  trails,
+  trailGeoData,
+  selectedTripId = null,
+  onTripSelect,
+}: MapShellProps) {
   const [zoom, setZoom] = useState(DEFAULT_ZOOM);
-  const [isLoading, setIsLoading] = useState(true);
-
-  // Fetch peaks + manifest in parallel. Failures are logged and swallowed so
-  // a single endpoint hiccup doesn't blank the whole map — the map renders
-  // with whatever loaded.
-  useEffect(() => {
-    let cancelled = false;
-    async function load() {
-      try {
-        const [peaksRes, routesRes] = await Promise.all([
-          fetch(`${API_URL_BASE}/`),
-          fetch(`${API_URL_BASE}/routes`),
-        ]);
-
-        if (peaksRes.ok) {
-          const data: Peak[] = await peaksRes.json();
-          if (!cancelled) {
-            setPeaks(data.filter((p) => p.latitude && p.longitude));
-          }
-        } else {
-          console.error("[map] peaks fetch failed:", peaksRes.statusText);
-        }
-
-        if (routesRes.ok) {
-          const data: Trail[] = await routesRes.json();
-          if (!cancelled) setTrailManifest(data);
-        } else {
-          console.error("[map] routes fetch failed:", routesRes.statusText);
-        }
-      } catch (error) {
-        console.error("[map] manifest fetch failed:", error);
-      } finally {
-        if (!cancelled) setIsLoading(false);
-      }
-    }
-    load();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  // Once the manifest lands, kick off the per-trail GeoJSON fetches in
-  // parallel. Promise.allSettled means a single broken S3 URL doesn't drop
-  // the rest — we filter undefined results out before they hit the overlay.
-  useEffect(() => {
-    if (trailManifest.length === 0) return;
-    let cancelled = false;
-    async function loadGeoJson() {
-      const settled = await Promise.allSettled(
-        trailManifest.map((trail) =>
-          fetch(trail.geojson_url).then((res) => {
-            if (!res.ok) {
-              throw new Error(
-                `Failed to fetch ${trail.geojson_url}: ${res.statusText}`
-              );
-            }
-            return res.json();
-          })
-        )
-      );
-      if (cancelled) return;
-      // Preserve manifest order so TrailOverlay can pair by index.
-      setTrailGeoData(
-        settled.map((result) => {
-          if (result.status === "fulfilled") return result.value;
-          console.error("[map] geojson fetch failed:", result.reason);
-          return null;
-        })
-      );
-    }
-    loadGeoJson();
-    return () => {
-      cancelled = true;
-    };
-  }, [trailManifest]);
-
-  if (isLoading) {
-    return (
-      <main className="flex flex-1 items-center justify-center text-ink-2">
-        <p className="font-mono text-sm">Wczytuję mapę…</p>
-      </main>
-    );
-  }
 
   return (
-    <main>
-      <MapContainer
-        center={DEFAULT_CENTER}
-        zoom={DEFAULT_ZOOM}
-        scrollWheelZoom
-        // The .leaflet-container CSS in globals.css overrides this to fit
-        // between the header and footer; the inline 100vh is a safe default
-        // if those CSS rules ever fail to load.
-        style={{ height: "100vh", width: "100%" }}
-        // Disable Leaflet's default zoom-anim on prefers-reduced-motion. The
-        // prop has to be a static literal, so we hand it the matchMedia result
-        // — there's no SSR risk because this entire file is client-only.
-        zoomAnimation={
-          typeof window === "undefined"
-            ? true
-            : !window.matchMedia("(prefers-reduced-motion: reduce)").matches
-        }
-      >
-        <MapTileLayer />
-        <ZoomTracker onZoom={setZoom} />
+    <MapContainer
+      center={DEFAULT_CENTER}
+      zoom={DEFAULT_ZOOM}
+      scrollWheelZoom
+      // The wrapper element (<main>, <section>) sizes the container; the
+      // 100% inline style lets the MapContainer fill whatever slot it lives
+      // in (full viewport on desktop right column, 40vh slab on mobile).
+      style={{ height: "100%", width: "100%" }}
+      // Disable Leaflet's default zoom-anim on prefers-reduced-motion. The
+      // prop has to be a static literal, so we hand it the matchMedia result
+      // — no SSR risk because this entire file is client-only.
+      zoomAnimation={
+        typeof window === "undefined"
+          ? true
+          : !window.matchMedia("(prefers-reduced-motion: reduce)").matches
+      }
+    >
+      <MapTileLayer />
+      <ZoomTracker onZoom={setZoom} />
+      <FlyToSelected
+        trails={trails}
+        trailGeoData={trailGeoData}
+        selectedTripId={selectedTripId}
+      />
 
-        <TrailOverlay manifest={trailManifest} geoData={trailGeoData} />
+      <TrailOverlay
+        manifest={trails}
+        geoData={trailGeoData}
+        selectedTrailId={selectedTripId ?? null}
+        {...(onTripSelect ? { onTrailClick: (id) => onTripSelect(id) } : {})}
+      />
 
-        <PeakMarkers peaks={peaks} zoom={zoom} />
-      </MapContainer>
-    </main>
+      <PeakMarkers peaks={peaks} zoom={zoom} />
+    </MapContainer>
   );
 }
