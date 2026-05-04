@@ -15,12 +15,18 @@
  */
 "use client";
 
-import { useEffect, useRef } from "react";
-import type { Trail } from "@/components/map/types";
+import { useEffect, useMemo, useRef } from "react";
+import type { Trail, TrailGeoJson } from "@/components/map/types";
 import { TripRow } from "./trip-row";
+import { TripDetailPanel } from "./trip-detail-panel";
+import { extractTripMeta } from "./extract-trip-meta";
 
 interface TripListProps {
   trails: Trail[];
+  // PR 4: per-trail GeoJSON, index-aligned with `trails`. Used by the inline
+  // detail panel to read distance / elevation / coords. Optional for callers
+  // that don't need the panel (none today, but keeps the contract loose).
+  trailGeoData?: TrailGeoJson[];
   selectedTripId: string | null;
   onSelect: (trailId: string | null) => void;
   isLoading: boolean;
@@ -28,6 +34,7 @@ interface TripListProps {
 
 export function TripList({
   trails,
+  trailGeoData,
   selectedTripId,
   onSelect,
   isLoading,
@@ -45,6 +52,17 @@ export function TripList({
       row.scrollIntoView({ block: "nearest", behavior: "smooth" });
     }
   }, [selectedTripId]);
+
+  // Cache parsed meta for the selected trip — extractTripMeta walks the
+  // whole geometry, so re-running it on every render of the surrounding list
+  // would be wasteful for a long polyline.
+  const selectedMeta = useMemo(() => {
+    if (!selectedTripId || !trailGeoData) return null;
+    const index = trails.findIndex((t) => t.id === selectedTripId);
+    if (index === -1) return null;
+    const geo = trailGeoData[index];
+    return extractTripMeta(geo ?? null);
+  }, [selectedTripId, trailGeoData, trails]);
 
   return (
     <section
@@ -78,18 +96,42 @@ export function TripList({
           </p>
         ) : (
           <ul role="list" className="flex flex-col">
-            {trails.map((trail) => (
-              <li key={trail.id} data-trip-id={trail.id}>
-                <TripRow
-                  trail={trail}
-                  isSelected={selectedTripId === trail.id}
-                  // Toggle: re-clicking the selected row deselects.
-                  onSelect={(id) =>
-                    onSelect(selectedTripId === id ? null : id)
+            {trails.map((trail) => {
+              const isSelected = selectedTripId === trail.id;
+              return (
+                <li
+                  key={trail.id}
+                  data-trip-id={trail.id}
+                  className={
+                    isSelected
+                      ? "border-y border-hairline bg-surface-2"
+                      : undefined
                   }
-                />
-              </li>
-            ))}
+                >
+                  {isSelected ? (
+                    /* In-place expansion per docs/design-proposal.md §7.
+                       The row's compact header is replaced by the full panel;
+                       the close button collapses the panel back. The map fly-
+                       to + spotlight is owned by MapShell and triggered via
+                       the same `selectedTripId` prop in app/page.tsx. */
+                    <TripDetailPanel
+                      trail={trail}
+                      meta={selectedMeta}
+                      onClose={() => onSelect(null)}
+                    />
+                  ) : (
+                    <TripRow
+                      trail={trail}
+                      isSelected={false}
+                      // Toggle: re-clicking the selected row deselects.
+                      onSelect={(id) =>
+                        onSelect(selectedTripId === id ? null : id)
+                      }
+                    />
+                  )}
+                </li>
+              );
+            })}
           </ul>
         )}
       </div>
