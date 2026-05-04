@@ -19,7 +19,6 @@ export const WKT_PEAK_IDS: ReadonlyArray<string> = [
   "lomnica",           // 2633
   "lodowy_szczyt",     // 2627
   "durny_szczyt",      // 2621
-  "lodowa_kopa",       // 2602
   "kiezmarski_szczyt", // 2558
   "wysoka",            // 2547
   "konczysta",         // 2538
@@ -29,6 +28,7 @@ export const WKT_PEAK_IDS: ReadonlyArray<string> = [
   "ganek",             // 2462
   "slawkowski_szczyt", // 2452
   "posrednia_gran",    // 2439
+  "jaworowy_szczyt",   // 2417
 ];
 
 export const BAGGED_THRESHOLD_M = 50;
