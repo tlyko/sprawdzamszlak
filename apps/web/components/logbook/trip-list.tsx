@@ -16,6 +16,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef } from "react";
+import Link from "next/link";
 import type { Trail, TrailGeoJson } from "@/components/map/types";
 import { TripRow } from "./trip-row";
 import { TripDetailPanel } from "./trip-detail-panel";
@@ -71,13 +72,20 @@ export function TripList({
     >
       {/* Column header: small caps, paper-style. The label is intentionally
           terse — the chrome already says what the site is. */}
-      <header className="flex items-baseline justify-between border-b border-hairline px-5 py-4">
+      <header className="flex items-baseline justify-between gap-3 border-b border-hairline px-5 py-4">
         <h2 className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink-3">
           dziennik
         </h2>
-        <span className="font-mono text-[11px] tabular-nums text-ink-3">
-          {isLoading ? "…" : `${trails.length} tras`}
-        </span>
+        <div className="flex items-baseline gap-3 font-mono text-[11px] tabular-nums text-ink-3">
+          <span>{isLoading ? "…" : `${trails.length} tras`}</span>
+          <span aria-hidden="true">·</span>
+          <Link
+            href="/statystyki/"
+            className="uppercase tracking-[0.08em] hover:text-ink-1 transition-colors"
+          >
+            stats →
+          </Link>
+        </div>
       </header>
 
       <div
