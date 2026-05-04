@@ -1,11 +1,11 @@
 /*
  * Wielka Korona Tatr — list of 14 peaks + bagged-detection helpers.
  *
- * The WKT roster is a popular (not officially sanctioned) list of the 14
- * highest peaks of the Tatras. We hard-code the IDs against
- * `apps/api/seeds/peaks.json` rather than computing top-N-by-height: the seed
- * also includes peaks that aren't WKT (Rysy, Giewont) and the height ranking
- * isn't a clean cutoff once you exclude them.
+ * The WKT roster is hard-coded by ID against `apps/api/seeds/peaks.json` and
+ * ordered to match the official Wikipedia table. Note that seed heights drift
+ * by 1–13 m from the canonical heights for some peaks (different cartographic
+ * sources); the ordering here is the WKT rank, not a re-sort of the seed
+ * heights.
  *
  * Bagged detection is geometric: a peak counts as bagged if any point on any
  * recorded trail comes within BAGGED_THRESHOLD_M metres of the summit. 50m is
@@ -14,21 +14,23 @@
  */
 import type { Peak, TripCoordinate } from "@/components/map/types";
 
+// Order = official WKT rank (per pl.wikipedia.org/wiki/Wielka_Korona_Tatr).
+// Heights in comments are the canonical values; seed heights differ slightly.
 export const WKT_PEAK_IDS: ReadonlyArray<string> = [
-  "gerlach",           // 2655
-  "lomnica",           // 2633
-  "lodowy_szczyt",     // 2627
-  "durny_szczyt",      // 2621
-  "kiezmarski_szczyt", // 2558
-  "wysoka",            // 2547
-  "konczysta",         // 2538
-  "baranie_rogi",      // 2530
-  "krywan",            // 2495
-  "starolesny_szczyt", // 2476
-  "ganek",             // 2462
-  "slawkowski_szczyt", // 2452
-  "posrednia_gran",    // 2439
-  "jaworowy_szczyt",   // 2417
+  "gerlach",           //  1 · 2655
+  "lomnica",           //  2 · 2633
+  "lodowy_szczyt",     //  3 · 2627
+  "durny_szczyt",      //  4 · 2621
+  "wysoka",            //  5 · 2558
+  "kiezmarski_szczyt", //  6 · 2557
+  "konczysta",         //  7 · 2536
+  "baranie_rogi",      //  8 · 2530
+  "rysy",              //  9 · 2501
+  "krywan",            // 10 · 2495
+  "starolesny_szczyt", // 11 · 2489
+  "ganek",             // 12 · 2464
+  "slawkowski_szczyt", // 13 · 2452
+  "posrednia_gran",    // 14 · 2439
 ];
 
 export const BAGGED_THRESHOLD_M = 50;

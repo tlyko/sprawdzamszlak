@@ -179,9 +179,9 @@ export default function KoronaTatrPage() {
       </ul>
 
       <footer className="mt-8 border-t border-hairline pt-5 font-mono text-[11px] uppercase tracking-[0.06em] text-ink-3">
-        Lista WKT — Gerlach, Łomnica, Lodowy, Durny, Kieżmarski, Wysoka,
-        Kończysta, Baranie Rogi, Krywań, Staroleśny, Ganek, Sławkowski,
-        Pośrednia Grań, Jaworowy.
+        Lista WKT — Gerlach, Łomnica, Lodowy, Durny, Wysoka, Kieżmarski,
+        Kończysta, Baranie Rogi, Rysy, Krywań, Staroleśny, Ganek, Sławkowski,
+        Pośrednia Grań.
       </footer>
     </main>
   );
