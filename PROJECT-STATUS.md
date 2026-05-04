@@ -1,4 +1,4 @@
-# Project status snapshot — 2026-05-03 evening
+# Project status snapshot — 2026-05-04 morning
 
 Living document — overwritten when significant state changes. Read this first after `/clear`.
 
@@ -8,69 +8,98 @@ Living document — overwritten when significant state changes. Read this first 
 |---|---|
 | W1 — monorepo extract from two source repos | ✅ shipped |
 | W2 — TS rewrite of Lambda + DDB seed migration off Terraform | ✅ shipped |
-| W2 hotfix — Lambda nodejs22.x ESM `dist/package.json` | ✅ shipped |
-| Frontend on Cloudflare Workers + Static Assets (`output:'export'`) | ✅ live at sprawdzamszlak.pl + sprawdzamszlak.tlyko94.workers.dev |
-| ADR-005 — Terraform Cloud → S3+DDB backend + GitHub Actions OIDC | ✅ migrated, first GHA-driven apply succeeded |
+| Frontend on Cloudflare Workers + Static Assets (`output:'export'`) | ✅ live |
+| ADR-005 — Terraform Cloud → S3+DDB backend + GitHub Actions OIDC | ✅ migrated |
 | Cost monitoring | ✅ AWS Budget $1/m + Cost Anomaly Detection daily |
-| W3 (admin panel + GPX upload) — original scope | ❌ retracted (see "Decisions made" below) |
-| W4 — Strava OAuth + webhook integration | 🟡 next milestone, deadline 2026-06-15 |
+| W3 (admin panel + GPX upload) — original scope | ❌ retracted |
+| **W4 — Strava OAuth + webhook integration (deadline 2026-06-15)** | **✅ shipped 6 weeks early — 2026-05-04** |
+| Security backlog (BACKLOG.md issues #1–#7) | ✅ all closed |
+| Direction B redesign — PR 1 (foundations) | ✅ shipped |
+| Direction B redesign — PR 2 (cartographic pass) | 🟡 in flight |
+| Direction B redesign — PR 3 (logbook layout) | ⏳ next |
+| Direction B redesign — PR 4 (trip detail + elevation) | ⏳ pending |
+| Direction B redesign — PR 5 (peak pages + Strava restyle) | ⏳ pending |
 
 ## Open PRs
 
-None — main is current, all open work merged or closed.
+Check `gh pr list` — Direction B PR 2 may be open from a background frontend agent.
 
-## Decisions made
+## W4 — what landed
 
-### Admin panel retracted from W3
-PR #21 (chore(w3): admin panel + GPX upload endpoint) was closed without merging. Reason after re-eval with owner:
+Three slices, all merged + deployed.
 
-- New activities flow through Strava webhook (W4) automatically
-- Historical GPX already manually imported pre-W2
-- Manual edits go through git: edit `apps/api/seeds/*.json` → push → GHA `terraform apply`
-- Edge case "Strava didn't capture, I have a Garmin GPX" hits maybe 2-3× a year — overkill to build a browser admin panel for that
+### Slice A — OAuth (PR #23)
+- `GET /strava/oauth/start` mints CSRF state in DDB, 302 to Strava authorize.
+- `GET /strava/oauth/callback` validates state, exchanges code, writes tokens to Parameter Store as a SecureString JSON tuple at `/sprawdzamszlak/strava/tokens`.
+- Static pages: `/strava` (connect button) + `/strava/connected` (status banner).
+- DDB table `sprawdzamszlak-strava-oauth-states` with TTL 10 min.
 
-Path forward when those edge cases come up:
-- Build a small **CLI script** (`apps/api/scripts/upload-gpx.ts`) that authenticates via owner's AWS SSO and writes directly to S3 + DDB. No shared secret, no public endpoint.
+### Slice B — Webhook subscription (PR #25)
+- `GET /strava/webhook` (handshake — echo `hub.challenge` if `verify_token` matches SSM).
+- `POST /strava/webhook` (zod-validate, conditional PutItem, always 200; <2s budget).
+- DDB table `sprawdzamszlak-strava-events` with TTL 7d + DDB Streams (`NEW_IMAGE`).
+- Owner CLIs: `pnpm -F api strava:subscribe` / `:unsubscribe`. The subscribe script auto-generates `verify_token` if absent.
 
-Proper browser admin panel is **post-season backlog** (after 2026-06-15). When it comes back:
-- Auth via Cloudflare Access (Zero Trust) rather than HTTP Basic
-- Or AWS IAM SigV4 if CLI-only access is enough
-- ADR-002 will be re-opened or a new ADR-007 written then.
+### Slice C — Fetcher Lambda (PR #29)
+- Second Lambda `sprawdzamszlak-app-fetcher` (handler `strava/fetcher-handler.handler`, 30s timeout).
+- Triggered by DDB Stream on the events table (`starting_position = LATEST`).
+- Refresh token if `expires_at - now < 60s`, GET activity + streams, filter by `SPORT_TYPE_ALLOWLIST`, build GeoJSON LineString with `[lng, lat, alt]`, PUT S3 `trails/strava_{id}.geojson` + DDB row `id=strava-{id}` `type=off-piste`.
+- 404 on Strava → silent. `aspect_type=delete` → log + skip (route stays). Per-record `try/catch` so one bad event doesn't poison the batch.
 
-### Other architectural commitments (from ADRs)
+## Owner E2E test (do this once, no rush)
+
+The infra is live but no Strava activities have flowed through yet. To verify end-to-end:
+
+1. **OAuth (one-time)**
+   - Open https://sprawdzamszlak.pl/strava
+   - Click "Połącz ze Stravą", consent on Strava, land on `/strava/connected?status=ok`
+   - Verify: `aws ssm get-parameter --name /sprawdzamszlak/strava/tokens --with-decryption --region eu-west-1 --query 'Parameter.Value' --output text | jq .` returns `{access_token, refresh_token, expires_at, athlete_id}`.
+
+2. **Webhook subscribe (one-time)**
+   - `corepack pnpm -F api strava:subscribe` (uses local AWS SSO). Auto-generates verify_token, POSTs to Strava, stores `subscription_id` in SSM.
+   - Verify Strava handshake hit our endpoint: `aws logs tail /aws/lambda/sprawdzamszlak-app --since 5m`.
+
+3. **First import**
+   - Record (or already-recorded; aspect_type=update fires) a hike/walk/climb/ski-tour activity on Strava.
+   - Watch fetcher logs: `aws logs tail /aws/lambda/sprawdzamszlak-app-fetcher --follow`.
+   - After ~5–10s: `curl -s https://akoz890bg6.execute-api.eu-west-1.amazonaws.com/prod/routes | jq 'length'` should be one higher.
+   - Refresh https://sprawdzamszlak.pl — new track on the map.
+
+If something goes wrong, the events table holds the row for 7 days; reinsert it via `aws dynamodb put-item` to replay.
+
+## Known limits / debt
+
+- **Sport_type → route type heuristic** — fetcher hard-codes `type: "off-piste"` for everything imported. A future change could map `BackcountrySki/AlpineSki` → its own type for distinct map styling.
+- **No on-delete cleanup** — `aspect_type=delete` from Strava just logs; the route stays on the map. Owner can drop manually via DDB console if needed.
+- **No DLQ** — failed fetcher invocations rely on the events table TTL (7d) for replayability.
+- **`/o-projekcie` link 404s** — added by Direction B PR 1; lands in PR 5.
+- **IAM propagation lag on multi-resource applies** — when a PR widens CICD perms AND adds a new resource that needs them, the first apply fails (assumed-role creds are stale); manual re-run via `workflow_dispatch` works. Pattern: split policy-only PRs from new-resource PRs to avoid this.
+
+## Other architectural commitments (from ADRs)
+
 - **ADR-001** Option A modified: stay on AWS (Lambda + DDB + S3 + API GW), TS instead of Python, monorepo via pnpm workspaces.
-- **ADR-003** Strava webhook: Parameter Store SecureString for tokens, async hand-off via DDB Streams + fetcher Lambda, idempotency via conditional PutItem on `event_id`. Sport_type allow-list `SPORT_TYPE_ALLOWLIST` lives in `packages/shared`: `Hike`/`Walk`/`RockClimbing`/`BackcountrySki`/`AlpineSki`.
-- **ADR-004** GPX parser: `@tmcw/togeojson` + `@xmldom/xmldom` shim. SAFE_FILENAME regex shared between admin upload and Strava import.
-- **ADR-005** GHA + S3+DDB backend with AWS OIDC; TFC workspace decommissioned manually after first successful GHA apply.
-- **ADR-007** Strava OAuth start page: public static page on `apps/web/strava` + two API routes (`/strava/oauth/start` mints CSRF state in DDB, `/strava/oauth/callback` validates state, exchanges code, stores tokens in Parameter Store). Web layer never touches tokens.
+- **ADR-002** — Superseded by ADR-007 (admin panel retracted).
+- **ADR-003** Strava webhook + token storage + idempotency design. `SPORT_TYPE_ALLOWLIST` lives in `packages/shared`: `Hike`/`Walk`/`RockClimbing`/`BackcountrySki`/`AlpineSki`.
+- **ADR-004** GPX parser plan (currently unused — Strava streams skip the GPX layer).
+- **ADR-005** GHA + S3+DDB backend with AWS OIDC.
+- **ADR-007** Strava OAuth start page on `apps/web` + two API routes; web layer never touches tokens.
 
-## Next milestone — W4 Strava integration (deadline 2026-06-15)
+## SSM parameters in use
 
-Per ADR-001 sprint plan:
-
-- W4 (2026-05-23 → 2026-05-29): OAuth flow + webhook subscription + token storage
-- W5 (2026-05-30 → 2026-06-05): event handler E2E (signature/idempotency/refresh/streams → S3+DDB)
-- W6 (2026-06-06 → 2026-06-13): soak time, bug fixes
-
-W4 components to build:
-1. Lambda routes: `GET /strava/oauth/start`, `GET /strava/oauth/callback`, `GET /strava/webhook` (subscription handshake), `POST /strava/webhook` (events). See ADR-007 for the OAuth pair.
-2. Token storage: SSM Parameter Store SecureString.
-3. DDB tables: `sprawdzamszlak-strava-events` (idempotency, ADR-003) and `sprawdzamszlak-strava-oauth-states` (CSRF nonces, 10-min TTL, ADR-007).
-4. DDB Streams trigger on the events table → second Lambda (fetcher) for the heavy GPX-pull work.
-5. Static pages on `apps/web`: `/strava` (connect button) and `/strava/connected` (status banner from `?status=ok|error`).
-6. CLI helper `pnpm -F api strava:subscribe` to register the webhook subscription with Strava.
-
-Pre-W4 housekeeping (done 2026-05-03):
-- ✅ `SPORT_TYPE_ALLOWLIST` re-ported to `packages/shared/src/index.ts`.
-- ✅ ADR-002 marked Superseded by ADR-007.
-- ✅ ADR-007 written; ADR-003 D5 narrowed to point at it.
+| name | type | who writes | who reads |
+|---|---|---|---|
+| `/sprawdzamszlak/strava/client_id` | String | owner (CLI) | Lambda (oauth + fetcher) |
+| `/sprawdzamszlak/strava/client_secret` | SecureString | owner (CLI) | Lambda (oauth + fetcher) |
+| `/sprawdzamszlak/strava/verify_token` | SecureString | `strava:subscribe` CLI | Lambda (webhook handshake) |
+| `/sprawdzamszlak/strava/tokens` | SecureString | Lambda (oauth callback + fetcher refresh) | Lambda (fetcher) |
+| `/sprawdzamszlak/strava/subscription_id` | String | `strava:subscribe` CLI | — (informational) |
 
 ## Operational items still open
 
-- TFC workspace `sprawdzamszlak-org/sprawdzamszlak-infrastructure` — still exists as a backup; force-delete from TFC dashboard once a few days of GHA-driven applies pass cleanly.
-- TFC token in `~/.terraform.d/credentials.tfrc.json` — can be revoked from TFC after workspace deletion.
-- `/tmp/sprawdzamszlak-tfstate-*.tfstate` and `/tmp/config.tf.s3-backend.backup` — local backups from migration; safe to delete after a week.
-- Dependabot — enabled by owner; expect auto-PRs for npm + Actions + Terraform provider versions.
+- TFC workspace `sprawdzamszlak-org/sprawdzamszlak-infrastructure` — still exists as backup; force-delete after a few days of GHA-driven applies pass cleanly.
+- TFC token in `~/.terraform.d/credentials.tfrc.json` — can be revoked after workspace deletion.
+- `/tmp/sprawdzamszlak-tfstate-*.tfstate` and `/tmp/config.tf.s3-backend.backup` — local migration backups, safe to delete.
+- Dependabot enabled — expect auto-PRs.
 
 ## Repos
 
@@ -82,23 +111,32 @@ Pre-W4 housekeeping (done 2026-05-03):
 
 - Frontend: `https://sprawdzamszlak.pl` (custom domain) + `https://sprawdzamszlak.tlyko94.workers.dev` (workers.dev preview)
 - API: `https://akoz890bg6.execute-api.eu-west-1.amazonaws.com/prod`
-- Routes: `GET /` (peaks), `GET /routes` (with presigned S3 URLs), all returning JSON
+- Routes: `GET /` (peaks), `GET /routes` (with presigned S3 URLs), `GET /strava/oauth/start`, `GET /strava/oauth/callback`, `GET /strava/webhook`, `POST /strava/webhook`
 
 ## Useful CLI
 
 ```bash
 # Smoke test API
 curl -s https://akoz890bg6.execute-api.eu-west-1.amazonaws.com/prod/ | jq 'length'
-
-# Smoke test routes endpoint
 curl -s https://akoz890bg6.execute-api.eu-west-1.amazonaws.com/prod/routes | jq 'length'
 
 # Re-seed DDB from JSON (after a destructive accident)
 corepack pnpm -F @sprawdzamszlak/api seed
 
-# Build apps/api Lambda bundle
+# Build apps/api Lambda bundle (handler.js + strava/fetcher-handler.js)
 corepack pnpm -F @sprawdzamszlak/api build
+
+# Strava CLI (owner-run, AWS SSO)
+corepack pnpm -F @sprawdzamszlak/api strava:subscribe
+corepack pnpm -F @sprawdzamszlak/api strava:unsubscribe
 
 # Frontend dev server
 corepack pnpm -F sprawdzamszlak-frontend dev
+
+# Tail Lambda logs
+aws logs tail /aws/lambda/sprawdzamszlak-app --follow
+aws logs tail /aws/lambda/sprawdzamszlak-app-fetcher --follow
+
+# Inspect tokens (post-OAuth)
+aws ssm get-parameter --name /sprawdzamszlak/strava/tokens --with-decryption --region eu-west-1 --query 'Parameter.Value' --output text | jq .
 ```
