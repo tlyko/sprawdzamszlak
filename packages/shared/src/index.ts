@@ -90,18 +90,48 @@ export function sportTypeToRouteType(sportType: StravaSportType): RouteType {
   }
 }
 
+// Strava photos re-hosted in S3. Stored on the DDB row as object keys
+// (relative to the bucket prefix `trails/`) so the API can presign them per
+// request; same pattern as the GeoJSON URL. Caption is optional — Strava
+// returns it on the photos endpoint but most photos don't have one.
+//
+// Key shape: `photos/<activity_id>/<index>.jpg`. The leading `trails/` is
+// implicit (matches IAM scope on the bucket); index is 0-based per activity.
+export const SAFE_PHOTO_KEY = /^photos\/[0-9]{1,20}\/[0-9]{1,3}\.jpg$/;
+export const PhotoKeySchema = z
+  .string()
+  .regex(SAFE_PHOTO_KEY, 'Photo key must match /^photos\\/[0-9]+\\/[0-9]+\\.jpg$/');
+
+export const RoutePhotoSchema = z.object({
+  key: PhotoKeySchema,
+  caption: z.string().max(500).optional(),
+});
+export type RoutePhoto = z.infer<typeof RoutePhotoSchema>;
+
 export const RouteSchema = z.object({
   id: PeakIdSchema, // same slug rules
   name: z.string().min(1).max(200),
   type: RouteTypeSchema,
   filename: FilenameSchema,
+  // Capped at 20 to bound API enrichment cost (one presign per photo).
+  // Strava's per-activity limit is much lower in practice (a handful).
+  photos: z.array(RoutePhotoSchema).max(20).optional(),
 });
 
 export type Route = z.infer<typeof RouteSchema>;
 
-// Public-facing route includes the presigned S3 URL the API generates per request.
-export const RouteWithUrlSchema = RouteSchema.extend({
+// Public-facing route includes the presigned S3 URL the API generates per
+// request. Photo keys are similarly turned into presigned URLs at enrichment
+// time — the frontend never sees raw S3 object keys.
+export const RoutePhotoWithUrlSchema = z.object({
+  url: z.string().url(),
+  caption: z.string().max(500).optional(),
+});
+export type RoutePhotoWithUrl = z.infer<typeof RoutePhotoWithUrlSchema>;
+
+export const RouteWithUrlSchema = RouteSchema.omit({ photos: true }).extend({
   geojson_url: z.string().url(),
+  photos: z.array(RoutePhotoWithUrlSchema).max(20).optional(),
 });
 
 export type RouteWithUrl = z.infer<typeof RouteWithUrlSchema>;
