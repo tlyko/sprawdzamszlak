@@ -11,7 +11,9 @@
 #   - style-src 'unsafe-inline' covers Tailwind's inline styles + leaflet's
 #     JS-injected style attributes.
 #   - img-src includes data: for leaflet's vector marker icons; OSM tile
-#     subdomains (a/b/c.tile.openstreetmap.org) covered by wildcard.
+#     subdomains (a/b/c.tile.openstreetmap.org) covered by wildcard. Stadia
+#     Maps tiles (PR 2 "cartographic-pass") are served from a single host
+#     (tiles.stadiamaps.com), no subdomain wildcard needed.
 #   - connect-src lists every cross-origin we fetch: API GW + S3 (presigned
 #     GeoJSON URLs).
 #   - font-src 'self' — Fraunces is self-hosted via next/font.
@@ -22,4 +24,4 @@
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin
   Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(), interest-cohort=()
-  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://*.tile.openstreetmap.org; connect-src 'self' https://akoz890bg6.execute-api.eu-west-1.amazonaws.com https://sprawdzamszlak-trails-storage-214598715232.s3.eu-west-1.amazonaws.com; font-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'; upgrade-insecure-requests
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://*.tile.openstreetmap.org https://tiles.stadiamaps.com; connect-src 'self' https://akoz890bg6.execute-api.eu-west-1.amazonaws.com https://sprawdzamszlak-trails-storage-214598715232.s3.eu-west-1.amazonaws.com; font-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'; upgrade-insecure-requests

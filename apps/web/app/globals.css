@@ -156,3 +156,186 @@ body {
   background: var(--accent);
   color: var(--surface-0);
 }
+
+/* ==========================================================================
+ * Map chrome — PR 2 ("cartographic-pass"). See docs/design-proposal.md §6.
+ *
+ * Peak markers and trail popups previously inlined `style.cssText` strings
+ * inside TatraMap.tsx; PR 2 moves the visual language into here so the design
+ * tokens stay in one place and the marker DOM (built by L.divIcon) can be
+ * styled without re-rendering the React tree.
+ * ==========================================================================
+ */
+
+/* Wrapper class fed to L.DivIcon. Leaflet adds its own .leaflet-div-icon
+   class to the same element which carries a default white square + border;
+   we strip it back to a transparent box so only our inner DOM shows. */
+.leaflet-div-icon.peak-marker-wrap {
+  background: transparent;
+  border: none;
+  /* The icon's bounding box is sized to the dot itself; the label sits
+     outside that box and must be clickable + visible. */
+  overflow: visible;
+}
+
+/* Layout container inside the DivIcon. Display: inline-flex so the dot and
+   label sit on a single baseline; align-items: center keeps the label
+   vertically centred against the dot. */
+.peak-marker {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  /* Anchor at the dot's centre — the label expands rightward only. */
+  position: relative;
+  /* Subtle shadow on the whole marker so labels don't disappear into a
+     light tile. The drop-shadow filter respects the per-element shape (it
+     follows the round dot + the rectangular label) — much cleaner than a
+     box-shadow which would draw a square halo around the bounding box. */
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.55));
+}
+
+/* The dot itself. Border colour and background are set inline per-tier
+   (filled summit/high vs outline-only mid/low) — see buildPeakIcon. */
+.peak-marker__dot {
+  display: inline-block;
+  border-radius: 9999px;
+  border-style: solid;
+  border-width: 1.5px;
+  flex: 0 0 auto;
+  /* The inline width/height set per-tier already constrains size; the
+     box-sizing rule keeps the border inside that footprint. */
+  box-sizing: border-box;
+}
+
+/* Pill label sitting next to the dot. */
+.peak-marker__label {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 2px 6px;
+  border-radius: 3px;
+  background: var(--surface-1);
+  border: 1px solid var(--hairline);
+  color: var(--ink-1);
+  white-space: nowrap;
+  /* Don't let the label intercept hover from the dot underneath. The dot
+     has its own pointer-events; the label is decorative-ish. */
+  pointer-events: none;
+  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  font-size: 11px;
+  line-height: 1;
+  letter-spacing: 0.01em;
+}
+
+/* Tier-specific accents on the label. Summit gets the gold border to echo
+   the dot fill; high gets a warm-snow border; mid/low stay neutral. */
+.peak-marker__label--summit {
+  border-color: var(--alt-summit);
+  color: var(--alt-summit);
+}
+.peak-marker__label--high {
+  color: var(--alt-high);
+}
+.peak-marker__label--mid,
+.peak-marker__label--low {
+  color: var(--ink-2);
+}
+
+.peak-marker__name {
+  font-weight: 500;
+}
+
+.peak-marker__altitude {
+  font-family: var(--font-geist-mono), ui-monospace, SFMono-Regular, monospace;
+  font-size: 10px;
+  color: var(--ink-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Leaflet's default popup is a white square with a stem. Restyle to match
+   the dark surface system. We target .leaflet-popup-content-wrapper (the
+   outer box) and .leaflet-popup-tip (the stem). */
+.leaflet-popup-content-wrapper {
+  background: var(--surface-1);
+  color: var(--ink-1);
+  border: 1px solid var(--hairline);
+  border-radius: 4px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45);
+}
+.leaflet-popup-tip {
+  background: var(--surface-1);
+  border: 1px solid var(--hairline);
+}
+.leaflet-popup-content {
+  margin: 12px 14px;
+  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  font-size: var(--text-sm);
+  line-height: 1.5;
+}
+.leaflet-container a.leaflet-popup-close-button {
+  color: var(--ink-3);
+}
+.leaflet-container a.leaflet-popup-close-button:hover {
+  color: var(--ink-1);
+}
+
+/* Peak popup card — name + altitude at the top, trudność below. */
+.peak-popup__title {
+  font-family: var(--font-fraunces), ui-serif, serif;
+  font-size: var(--text-lg);
+  font-weight: 500;
+  margin: 0 0 4px 0;
+  color: var(--ink-1);
+}
+.peak-popup__row {
+  margin: 0;
+  color: var(--ink-2);
+  font-size: var(--text-sm);
+}
+.peak-popup__label {
+  color: var(--ink-3);
+}
+
+/* Trail popup card — same family, smaller. */
+.trail-popup__title {
+  font-family: var(--font-fraunces), ui-serif, serif;
+  font-size: var(--text-base);
+  font-weight: 500;
+  margin: 0 0 4px 0;
+  color: var(--ink-1);
+}
+.trail-popup__type {
+  margin: 0;
+  color: var(--ink-2);
+  font-size: var(--text-xs);
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  text-transform: lowercase;
+  letter-spacing: 0.02em;
+}
+
+/* Leaflet's attribution control — keep it but make it match the dark UI.
+   Stadia's terms require it visible; muted ink-3 on a translucent surface
+   is the right answer. */
+.leaflet-control-attribution {
+  background: rgba(22, 26, 34, 0.85) !important;
+  color: var(--ink-3) !important;
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-size: 10px !important;
+  padding: 2px 6px !important;
+}
+.leaflet-control-attribution a {
+  color: var(--ink-2) !important;
+}
+.leaflet-control-attribution a:hover {
+  color: var(--ink-1) !important;
+}
+
+/* Light-mode adjustments — the popup + attribution backgrounds need to
+   re-skew to the paper palette. Tier label colours stay tuned for both
+   surfaces (the topographic accents are intentionally palette-stable per
+   §5). */
+@media (prefers-color-scheme: light) {
+  .leaflet-control-attribution {
+    background: rgba(244, 240, 229, 0.9) !important;
+  }
+}
