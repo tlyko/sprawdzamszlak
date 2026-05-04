@@ -21,6 +21,7 @@ type NavItem = {
 
 const NAV: ReadonlyArray<NavItem> = [
   { href: "/", label: "mapa" },
+  { href: "/korona-tatr", label: "korona" },
   { href: "/o-projekcie", label: "o projekcie" },
   { href: "/strava", label: "strava" },
 ];
@@ -35,14 +36,14 @@ export function Header() {
         <Link
           href="/"
           // Mark as serif via the Fraunces variable wired in app/layout.tsx.
-          className="font-serif text-[20px] tracking-tight text-ink-1 hover:text-accent transition-colors duration-200"
+          className="font-serif text-[17px] sm:text-[20px] tracking-tight text-ink-1 hover:text-accent transition-colors duration-200 mr-3"
           aria-label="sprawdzamszlak.pl — strona główna"
         >
           sprawdzamszlak
         </Link>
 
         <nav aria-label="Główna nawigacja">
-          <ul className="flex items-center gap-5 sm:gap-7 font-mono text-[13px] text-ink-2">
+          <ul className="flex items-center gap-3.5 sm:gap-7 font-mono text-[12px] sm:text-[13px] text-ink-2 whitespace-nowrap">
             {NAV.map((item) => (
               <li key={item.href}>
                 <Link
