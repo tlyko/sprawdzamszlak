@@ -124,17 +124,15 @@ interface StravaActivity {
   total_elevation_gain?: number;
 }
 
-interface StravaLatLngStream {
-  type: 'latlng';
-  data: Array<[number, number]>; // [lat, lng]
+// Strava streams API returns the keyed-by-type shape regardless of the
+// `key_by_type` query param in current production behaviour (the docs lie).
+// We expect: { latlng: { data: [[lat, lng], ...] }, altitude: { data: [...] }, ... }
+interface StravaStreams {
+  latlng?: { data: Array<[number, number]> };
+  altitude?: { data: number[] };
+  // Other keys (time, distance) come back too but we don't use them yet.
+  [key: string]: { data: unknown[] } | undefined;
 }
-
-interface StravaAltitudeStream {
-  type: 'altitude';
-  data: number[];
-}
-
-type StravaStream = StravaLatLngStream | StravaAltitudeStream | { type: string; data: unknown };
 
 async function fetchActivity(id: number, accessToken: string): Promise<StravaActivity | null> {
   const resp = await fetch(`https://www.strava.com/api/v3/activities/${id}`, {
@@ -151,10 +149,10 @@ async function fetchActivity(id: number, accessToken: string): Promise<StravaAct
   return (await resp.json()) as StravaActivity;
 }
 
-async function fetchActivityStreams(id: number, accessToken: string): Promise<StravaStream[]> {
+async function fetchActivityStreams(id: number, accessToken: string): Promise<StravaStreams> {
   const url = new URL(`https://www.strava.com/api/v3/activities/${id}/streams`);
   url.searchParams.set('keys', 'latlng,altitude,time,distance');
-  url.searchParams.set('key_by_type', 'false');
+  url.searchParams.set('key_by_type', 'true');
   const resp = await fetch(url, {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
@@ -162,7 +160,7 @@ async function fetchActivityStreams(id: number, accessToken: string): Promise<St
     const body = await resp.text().catch(() => '<unreadable>');
     throw new Error(`fetchActivityStreams ${id} failed: HTTP ${resp.status} ${body}`);
   }
-  return (await resp.json()) as StravaStream[];
+  return (await resp.json()) as StravaStreams;
 }
 
 // ---------------------------------------------------------------------------
@@ -186,12 +184,12 @@ interface GeoJSONFeature {
   };
 }
 
-function buildGeoJSON(activity: StravaActivity, streams: StravaStream[]): GeoJSONFeature | null {
-  const latlng = streams.find((s): s is StravaLatLngStream => s.type === 'latlng');
+function buildGeoJSON(activity: StravaActivity, streams: StravaStreams): GeoJSONFeature | null {
+  const latlng = streams.latlng;
   if (!latlng || !Array.isArray(latlng.data) || latlng.data.length === 0) {
     return null;
   }
-  const altitude = streams.find((s): s is StravaAltitudeStream => s.type === 'altitude');
+  const altitude = streams.altitude;
 
   const coordinates: GeoJSONFeature['geometry']['coordinates'] = latlng.data.map(
     ([lat, lng], i) => {
