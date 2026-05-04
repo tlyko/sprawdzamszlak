@@ -1,26 +1,158 @@
 @import "tailwindcss";
 
+/*
+ * Design tokens — Direction B, dark-default.
+ * See docs/design-proposal.md §5 for the rationale and AA-contrast notes.
+ *
+ * Token-naming follows the proposal verbatim so a future grep ("alpine-sky",
+ * "alt-summit", etc.) lands here. Light mode is opt-in via prefers-color-scheme
+ * and re-maps surface/ink only — topographic accents are tuned to read on both.
+ */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Surfaces */
+  --surface-0: #0e1116;   /* page background */
+  --surface-1: #161a22;   /* panel, header, footer */
+  --surface-2: #1f2630;   /* raised panel (selected trip card) */
+  --hairline:  #2a3340;   /* 1px dividers — never thicker */
+
+  /* Ink */
+  --ink-1:    #f2efe6;    /* primary text */
+  --ink-2:    #b8bdc7;    /* secondary, dates, units */
+  --ink-3:    #6e7480;    /* tertiary, captions */
+  --ink-mono: #d7dae0;    /* monospace stats */
+
+  /* Topographic accents — trails, peaks, altitude bands only */
+  --alpine-sky: #6fa8c4;
+  --lichen:     #8fa678;
+  --rusalka:    #c4744a;
+  --firn:       #e8e2d2;
+  --obsidian:   #2a3340;
+
+  /* Altitude tiers (peak markers, PR 2) */
+  --alt-low:    #6e7480;
+  --alt-mid:    #b8bdc7;
+  --alt-high:   #f2efe6;
+  --alt-summit: #ffd27a;
+
+  /* Functional */
+  --accent:  #ffd27a;     /* focus rings, key CTA */
+  --danger:  #c5564b;
+  --success: #7fa177;
+
+  /* Chrome geometry — used by globals.css to size the map area without
+     touching TatraMap.tsx (PR 1 constraint). */
+  --header-h: 56px;
+  --footer-h: 40px;
+
+  /* Type scale (modular, ratio 1.25, base 16) */
+  --text-xs:    12px;
+  --text-sm:    14px;
+  --text-base:  16px;
+  --text-lg:    20px;
+  --text-xl:    25px;
+  --text-2xl:   31px;
+  --text-3xl:   39px;
+  --text-4xl:   49px;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
+/*
+ * Light mode — paper palette inspired by old WIG maps. Opt-in via
+ * prefers-color-scheme. Topographic accents intentionally unchanged (they're
+ * tuned to read on both surfaces — see §5).
+ */
+@media (prefers-color-scheme: light) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --surface-0: #f4f0e5;
+    --surface-1: #ece6d6;
+    --surface-2: #e3dcc8;
+    --hairline:  #c8bfa8;
+
+    --ink-1:    #1b1f26;
+    --ink-2:    #4a4f59;
+    --ink-3:    #797f88;
+    --ink-mono: #2a3038;
   }
 }
 
+/*
+ * Tailwind v4 theme bridge. Exposes our tokens as utility classes
+ * (text-ink-1, bg-surface-1, border-hairline, font-serif, …).
+ */
+@theme inline {
+  --color-surface-0:   var(--surface-0);
+  --color-surface-1:   var(--surface-1);
+  --color-surface-2:   var(--surface-2);
+  --color-hairline:    var(--hairline);
+
+  --color-ink-1:       var(--ink-1);
+  --color-ink-2:       var(--ink-2);
+  --color-ink-3:       var(--ink-3);
+  --color-ink-mono:    var(--ink-mono);
+
+  --color-alpine-sky:  var(--alpine-sky);
+  --color-lichen:      var(--lichen);
+  --color-rusalka:     var(--rusalka);
+  --color-firn:        var(--firn);
+  --color-obsidian:    var(--obsidian);
+
+  --color-alt-low:     var(--alt-low);
+  --color-alt-mid:     var(--alt-mid);
+  --color-alt-high:    var(--alt-high);
+  --color-alt-summit:  var(--alt-summit);
+
+  --color-accent:      var(--accent);
+  --color-danger:      var(--danger);
+  --color-success:     var(--success);
+
+  --font-sans:  var(--font-geist-sans);
+  --font-mono:  var(--font-geist-mono);
+  --font-serif: var(--font-fraunces);
+}
+
+html, body {
+  height: 100%;
+}
+
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--surface-0);
+  color: var(--ink-1);
+  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, -apple-system, sans-serif;
+  font-size: var(--text-base);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  /* Stack: header — main grows — footer. Keeps the map in the middle and
+     keeps the footer pinned. The map's inline 100vh is overridden below. */
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+/* The map's MapContainer ships an inline style={{ height: '100vh' }} which
+   we don't touch in PR 1. Override it here so it fills the slot between
+   header and footer instead of overflowing. */
+.leaflet-container {
+  height: calc(100vh - var(--header-h) - var(--footer-h)) !important;
+  width: 100% !important;
+  background: var(--surface-0);
+}
+
+/* Numbers in the UI should be tabular so columns line up without the eye
+   doing arithmetic on glyph widths. Applied broadly; override per-component
+   if a free-width number is desired. */
+.font-mono, code, kbd, samp, pre {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Visible, accent-coloured focus ring across the app. Removes the platform
+   default outline only when our ring is visible — keeps keyboard a11y. */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+::selection {
+  background: var(--accent);
+  color: var(--surface-0);
 }
