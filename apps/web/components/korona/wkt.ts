@@ -12,7 +12,7 @@
  * forgiving enough to absorb GPS noise + summit plateau ambiguity without
  * picking up traverses that merely passed nearby.
  */
-import type { Peak, TripCoordinate } from "@/components/map/types";
+import type { Peak, Trail, TripCoordinate } from "@/components/map/types";
 
 // Order = official WKT rank (per pl.wikipedia.org/wiki/Wielka_Korona_Tatr).
 // Heights in comments are the canonical values; seed heights differ slightly.
@@ -76,16 +76,21 @@ export function isPeakBaggedByCoordinates(
 export interface WktPeakStatus {
   peak: Peak;
   bagged: boolean;
+  // First trail (manifest order) whose geometry brought us within the bagging
+  // threshold of this peak. Set only when `bagged === true`. Used to deep-link
+  // a bagged peak back to the home map with the relevant trail spotlit.
+  trailId?: string;
 }
 
 /**
  * Compute bagged status for the WKT 14, in roster order.
- * `trailCoords` is the array of LineString coordinates per trail (already
- * extracted from each trail's GeoJSON). Trails with no usable geometry should
+ * `trails` and `trailCoords` are aligned by index — `trailCoords[i]` is the
+ * extracted LineString of `trails[i]`. Trails with no usable geometry should
  * be passed in as empty arrays so indices stay aligned for the caller.
  */
 export function computeWktStatus(
   peaks: Peak[],
+  trails: Trail[],
   trailCoords: TripCoordinate[][]
 ): WktPeakStatus[] {
   const byId = new Map(peaks.map((p) => [p.id, p]));
@@ -93,14 +98,19 @@ export function computeWktStatus(
   for (const id of WKT_PEAK_IDS) {
     const peak = byId.get(id);
     if (!peak) continue;
-    let bagged = false;
-    for (const coords of trailCoords) {
-      if (isPeakBaggedByCoordinates(peak, coords)) {
-        bagged = true;
+    let trailId: string | undefined;
+    for (let i = 0; i < trailCoords.length; i++) {
+      const coords = trailCoords[i];
+      if (coords && isPeakBaggedByCoordinates(peak, coords)) {
+        trailId = trails[i]?.id;
         break;
       }
     }
-    result.push({ peak, bagged });
+    result.push(
+      trailId !== undefined
+        ? { peak, bagged: true, trailId }
+        : { peak, bagged: false }
+    );
   }
   return result;
 }
