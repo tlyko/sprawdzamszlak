@@ -111,8 +111,10 @@ data "aws_iam_policy_document" "gha_terraform_perms" {
   }
 
   # Event source mappings (DDB Streams → fetcher Lambda) are identified by
-  # UUID, not by ARN, so resource-level scoping isn't possible. The five
-  # actions below operate only on mappings the role itself created.
+  # UUID, not by ARN, so resource-level scoping isn't possible. Tag actions
+  # belong here because Lambda's tag API uses the same lambda:* verbs for
+  # both functions and event source mappings, and Terraform refresh-time
+  # ListTags on a mapping was failing without this.
   statement {
     sid    = "LambdaEventSourceMappings"
     effect = "Allow"
@@ -122,6 +124,9 @@ data "aws_iam_policy_document" "gha_terraform_perms" {
       "lambda:UpdateEventSourceMapping",
       "lambda:DeleteEventSourceMapping",
       "lambda:ListEventSourceMappings",
+      "lambda:ListTags",
+      "lambda:TagResource",
+      "lambda:UntagResource",
     ]
     resources = ["*"]
   }
