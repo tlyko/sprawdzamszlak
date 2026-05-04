@@ -23,6 +23,15 @@ export interface Peak {
   latitude?: number;
   longitude?: number;
   height?: number;
+  /** Climbing-grade label, present only on peaks where it adds info beyond
+   *  `trudnosc` (e.g. "I", "II / III"). Owner-curated seed data. */
+  trudnosc_wspinaczkowa?: string;
+  /** Pre-sanitized HTML blurb. Rendered via dangerouslySetInnerHTML on the
+   *  /szczyty/[slug] detail page — acceptable here because the content is
+   *  owner-curated, not user-generated. */
+  description_html?: string;
+  /** External Wikipedia link, optional. */
+  wiki_url?: string;
 }
 
 export type TrailType = "official" | "off-piste";

@@ -12,6 +12,7 @@
 import { useMemo } from "react";
 import { Marker, Popup } from "react-leaflet";
 import L from "leaflet";
+import Link from "next/link";
 import type { Peak } from "./types";
 import { TIERS, classifyPeak, type PeakTier } from "./peak-tier";
 
@@ -43,7 +44,6 @@ interface PeakMarkerProps {
 }
 
 function PeakMarker({ peak, tier }: PeakMarkerProps) {
-  const config = TIERS[tier];
   const icon = useMemo(() => buildDotIcon(tier), [tier]);
 
   return (
@@ -54,15 +54,36 @@ function PeakMarker({ peak, tier }: PeakMarkerProps) {
       zIndexOffset={tier === "summit" ? 1000 : tier === "high" ? 500 : 0}
       keyboard={false}
     >
+      {/*
+       * Popup card visually echoes the trip detail panel header from PR 4 —
+       * serif name, mono altitude, ink-2 difficulty rows, and a uppercase-mono
+       * "see peak" link in the footer. The full prose / wiki link live on
+       * /szczyty/[id]; this card stays compact because the popup floats over
+       * the map.
+       */}
       <Popup>
         <div className="peak-popup">
-          <h3 className="peak-popup__title">
-            {peak.nazwa}
-            {peak.height !== undefined ? ` (${peak.height} m)` : ""}
-          </h3>
+          <h3 className="peak-popup__title">{peak.nazwa}</h3>
+          {peak.height !== undefined ? (
+            <p className="peak-popup__altitude">
+              <span className="peak-popup__altitude-num">{peak.height}</span>{" "}
+              <span className="peak-popup__altitude-unit">m</span>
+            </p>
+          ) : null}
           <p className="peak-popup__row">
-            <span className="peak-popup__label">Trudność:</span>{" "}
+            <span className="peak-popup__label">trudność</span>{" "}
             {peak.trudnosc}
+          </p>
+          {peak.trudnosc_wspinaczkowa ? (
+            <p className="peak-popup__row">
+              <span className="peak-popup__label">wspinaczka</span>{" "}
+              {peak.trudnosc_wspinaczkowa}
+            </p>
+          ) : null}
+          <p className="peak-popup__footer">
+            <Link className="peak-popup__link" href={`/szczyty/${peak.id}/`}>
+              Zobacz szczyt →
+            </Link>
           </p>
         </div>
       </Popup>
