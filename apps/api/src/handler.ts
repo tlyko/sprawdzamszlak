@@ -29,6 +29,7 @@ import {
 
 import { ddb, s3, envOrThrow } from './clients.js';
 import { handleOAuthStart, handleOAuthCallback } from './strava/oauth.js';
+import { handleWebhookGet, handleWebhookPost } from './strava/webhook.js';
 
 // ---------------------------------------------------------------------------
 // Env validation at cold start
@@ -116,6 +117,16 @@ export const handler = async (
     // Route 4: GET /strava/oauth/callback → exchange code, write tokens, 302 to web
     if (method === 'GET' && path.endsWith('/strava/oauth/callback')) {
       return handleOAuthCallback(event);
+    }
+
+    // Route 5: GET /strava/webhook → subscription handshake (echo challenge)
+    if (method === 'GET' && path.endsWith('/strava/webhook')) {
+      return handleWebhookGet(event);
+    }
+
+    // Route 6: POST /strava/webhook → activity event (idempotent PutItem)
+    if (method === 'POST' && path.endsWith('/strava/webhook')) {
+      return handleWebhookPost(event);
     }
 
     return error(404, `Path ${method} ${path} not found`);

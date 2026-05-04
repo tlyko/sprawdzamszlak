@@ -7,7 +7,9 @@
     "build": "node --experimental-strip-types build.ts",
     "typecheck": "tsc --noEmit",
     "dev": "node --experimental-strip-types --watch build.ts",
-    "seed": "node --experimental-strip-types scripts/seed.ts"
+    "seed": "node --experimental-strip-types scripts/seed.ts",
+    "strava:subscribe": "node --experimental-strip-types scripts/strava-subscribe.ts",
+    "strava:unsubscribe": "node --experimental-strip-types scripts/strava-unsubscribe.ts"
   },
   "dependencies": {
     "@sprawdzamszlak/shared": "workspace:*"
