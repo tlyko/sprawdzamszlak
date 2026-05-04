@@ -10,7 +10,9 @@
     "seed": "node --experimental-strip-types scripts/seed.ts",
     "strava:subscribe": "node --experimental-strip-types scripts/strava-subscribe.ts",
     "strava:unsubscribe": "node --experimental-strip-types scripts/strava-unsubscribe.ts",
-    "strava:replay": "node --experimental-strip-types scripts/strava-replay.ts"
+    "strava:replay": "node --experimental-strip-types scripts/strava-replay.ts",
+    "strava:replay-many": "node --experimental-strip-types scripts/strava-replay-many.ts",
+    "strava:drop-manual-seeds": "node --experimental-strip-types scripts/strava-drop-manual-seeds.ts"
   },
   "dependencies": {
     "@sprawdzamszlak/shared": "workspace:*"
