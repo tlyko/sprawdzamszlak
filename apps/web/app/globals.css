@@ -187,11 +187,15 @@ body {
   gap: 6px;
   /* Anchor at the dot's centre — the label expands rightward only. */
   position: relative;
-  /* Subtle shadow on the whole marker so labels don't disappear into a
-     light tile. The drop-shadow filter respects the per-element shape (it
-     follows the round dot + the rectangular label) — much cleaner than a
-     box-shadow which would draw a square halo around the bounding box. */
-  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.55));
+  /* Drop-shadow on the whole marker so labels lift off the busy Stadia
+     Outdoors basemap (beige/sand cartography). The drop-shadow filter
+     respects the per-element shape (it follows the round dot + the
+     rectangular label) — much cleaner than a box-shadow which would draw
+     a square halo around the bounding box. Strengthened from the original
+     value after live-site feedback that labels were getting lost in the
+     terrain. */
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.6))
+          drop-shadow(0 2px 6px rgba(0, 0, 0, 0.4));
 }
 
 /* The dot itself. Border colour and background are set inline per-tier
@@ -207,15 +211,28 @@ body {
   box-sizing: border-box;
 }
 
-/* Pill label sitting next to the dot. */
+/* Pill label sitting next to the dot.
+ *
+ * Contrast strategy (revised after live-site feedback): the pill must read
+ * crisply on top of the Stadia Outdoors basemap, which is a busy beige/sand
+ * cartography. The previous --surface-1 (#161a22) pill at 100% looked dark
+ * but the very subtle accent text (alt-summit gold on near-black) was
+ * washed out at small sizes once anti-aliased onto a beige background.
+ *
+ * New approach: a near-opaque obsidian pill (matches our --obsidian token,
+ * which is the same value as --hairline so it stays in-palette) with light
+ * ink text by default and the summit accent reserved for the *altitude
+ * number only* — the name reads as ink-1 on every tier so the typography
+ * hierarchy comes from weight + colour-temp, not from competing accents.
+ */
 .peak-marker__label {
   display: inline-flex;
   align-items: baseline;
   gap: 6px;
-  padding: 2px 6px;
+  padding: 3px 7px;
   border-radius: 3px;
-  background: var(--surface-1);
-  border: 1px solid var(--hairline);
+  background: rgba(14, 17, 22, 0.92); /* --surface-0 at 92% — sits above tiles without bleeding */
+  border: 1px solid rgba(255, 255, 255, 0.08);
   color: var(--ink-1);
   white-space: nowrap;
   /* Don't let the label intercept hover from the dot underneath. The dot
@@ -227,22 +244,27 @@ body {
   letter-spacing: 0.01em;
 }
 
-/* Tier-specific accents on the label. Summit gets the gold border to echo
-   the dot fill; high gets a warm-snow border; mid/low stay neutral. */
+/* Tier-specific accents — name stays high-contrast ink-1 across tiers; only
+   the altitude number picks up the tier colour, which keeps readability
+   unconditional and lets the gold/firn/grey gradient signal elevation
+   without sacrificing the name itself. */
 .peak-marker__label--summit {
-  border-color: var(--alt-summit);
+  border-color: rgba(255, 210, 122, 0.45); /* --alt-summit at 45% — quiet gold edge */
+}
+.peak-marker__label--summit .peak-marker__altitude {
   color: var(--alt-summit);
 }
-.peak-marker__label--high {
+.peak-marker__label--high .peak-marker__altitude {
   color: var(--alt-high);
 }
-.peak-marker__label--mid,
-.peak-marker__label--low {
+.peak-marker__label--mid .peak-marker__altitude,
+.peak-marker__label--low .peak-marker__altitude {
   color: var(--ink-2);
 }
 
 .peak-marker__name {
   font-weight: 500;
+  color: var(--ink-1);
 }
 
 .peak-marker__altitude {

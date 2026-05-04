@@ -10,11 +10,20 @@
  *      icons than canvas-rendered CircleMarkers.
  *
  * Visibility model — see docs/design-proposal.md §6.3:
- *   Summit tier (>2400m, ~6 peaks) is always visible with name+altitude.
- *   Each lower tier appears progressively as the user zooms in. The old
- *   blanket "show nothing below zoom 12 + Przybliż mapę hint" rule is gone:
- *   the default landing view at zoom 11 now shows the iconic summits, which
- *   is the entire point of opening the page.
+ *   Summit tier (>2400m) is the headline tier; lower tiers fade in as the
+ *   user zooms in. The old blanket "show nothing below zoom 12 + Przybliż
+ *   mapę hint" rule is gone: the default landing view at zoom 11 still shows
+ *   the iconic summits, which is the entire point of opening the page.
+ *
+ *   The Tatra peaks data has ~20 entries above 2400m, most of which sit
+ *   inside a ~5km cluster in the central High Tatras. At the default zoom
+ *   (11) all of those labels overlap into an unreadable blob (live-site
+ *   feedback, May 2026). To keep the "summits as orientation landmarks"
+ *   intent without the cluster, we keep only two anchor labels visible at
+ *   zoom < 12: Gerlach (the highest, geographic centre of the High Tatras)
+ *   and Krywań (the iconic western anchor on the Slovak side). The other
+ *   summits still render as their gold dot, just without the pill, and they
+ *   light up with their full label as soon as the user zooms in to 12+.
  *
  * Implementation:
  *   We compute (tier, visibility) for each peak from the current zoom and
@@ -34,6 +43,22 @@ import { TIERS, classifyPeak, type PeakTier } from "./peak-tier";
 interface PeakMarkersProps {
   peaks: Peak[];
   zoom: number;
+}
+
+/*
+ * Anchor peaks for the low-zoom summit-label declutter.
+ *
+ * At zoom < SUMMIT_DECLUTTER_ZOOM the summit-tier labels collapse to just
+ * these two; everything else in the tier renders as its gold dot only.
+ * Matched by a case-insensitive prefix on `peak.nazwa` so both the Polish
+ * form ("Gerlach (Gerlachovský štít)") and any future name tweak still hit.
+ */
+const SUMMIT_DECLUTTER_ZOOM = 12;
+const ANCHOR_PEAK_PREFIXES = ["gerlach", "krywań", "krywan", "kriváň", "krivan"];
+
+function isAnchorPeak(peak: Peak): boolean {
+  const name = peak.nazwa.toLowerCase();
+  return ANCHOR_PEAK_PREFIXES.some((p) => name.startsWith(p));
 }
 
 export function PeakMarkers({ peaks, zoom }: PeakMarkersProps) {
@@ -65,7 +90,19 @@ interface PeakMarkerProps {
 
 function PeakMarker({ peak, tier, zoom }: PeakMarkerProps) {
   const config = TIERS[tier];
-  const labelVisible = zoom >= config.labelMinZoom;
+  // Base rule: respect the tier's labelMinZoom. Then declutter: at zoom
+  // below SUMMIT_DECLUTTER_ZOOM, only the two anchor summits keep their
+  // pill — all the other summit dots in the central-Tatras cluster lose
+  // their label until the user zooms in.
+  let labelVisible = zoom >= config.labelMinZoom;
+  if (
+    labelVisible &&
+    tier === "summit" &&
+    zoom < SUMMIT_DECLUTTER_ZOOM &&
+    !isAnchorPeak(peak)
+  ) {
+    labelVisible = false;
+  }
 
   // Build the DivIcon once per (tier, labelVisible) combination. We can't
   // easily memo across components, so per-render allocation is fine — Leaflet

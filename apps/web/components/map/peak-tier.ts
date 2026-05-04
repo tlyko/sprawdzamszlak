@@ -47,7 +47,11 @@ export const TIERS: Record<PeakTier, PeakTierConfig> = {
     size: 7,
     fillVar: "--alt-high",
     filled: true,
-    labelMinZoom: 11,
+    // Was 11 — bumped to 12 after live-site feedback that the central Tatras
+    // cluster was unreadable at the default zoom (11). High-tier dots stay
+    // visible as orientation cues; their labels only appear once we're at
+    // massif level (zoom 12+).
+    labelMinZoom: 12,
     markerMinZoom: 10,
   },
   mid: {
