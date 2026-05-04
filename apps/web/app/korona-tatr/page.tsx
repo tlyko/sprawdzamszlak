@@ -50,8 +50,14 @@ export default function KoronaTatrPage() {
   const total = status.length || WKT_PEAK_IDS.length;
 
   return (
+    // `grow shrink-0` (= `flex: 1 0 auto`) so the flex container (body) grows
+    // with this main's content instead of shrinking it to the viewport floor.
+    // `flex-1` (basis 0) caps main at `100vh - 96px` and lets long rosters
+    // bleed under the chrome footer; `flex-auto` (shrink 1) does the same when
+    // body's `min-h-screen` makes it look like there's no free space. The
+    // inline `minHeight` keeps main filling the viewport when content is short.
     <main
-      className="mx-auto w-full max-w-[960px] flex-1 px-5 py-8"
+      className="mx-auto w-full max-w-[960px] grow shrink-0 px-5 py-8"
       style={{ minHeight: "calc(100vh - var(--header-h) - var(--footer-h))" }}
     >
       <nav className="mb-6">
@@ -88,7 +94,7 @@ export default function KoronaTatrPage() {
 
       <ul
         role="list"
-        className="grid grid-cols-1 gap-px border border-hairline bg-hairline sm:grid-cols-2 lg:grid-cols-3"
+        className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3"
       >
         {(status.length > 0
           ? status
@@ -103,11 +109,11 @@ export default function KoronaTatrPage() {
             }))
         ).map(({ peak, bagged }, idx) => {
           const cellClasses = bagged
-            ? "bg-surface-1 hover:bg-surface-2 transition-colors"
-            : "bg-surface-1";
+            ? "border-hairline bg-surface-1 hover:bg-surface-2 transition-colors"
+            : "border-hairline bg-surface-1";
           const inner = (
             <article
-              className={`flex h-full flex-col gap-3 px-5 py-5 ${cellClasses}`}
+              className={`flex h-full flex-col gap-3 rounded-sm border px-5 py-5 ${cellClasses}`}
               aria-label={`${peak.nazwa}${bagged ? ", zaliczony" : ", niezaliczony"}`}
             >
               <header className="flex items-start justify-between gap-3">
