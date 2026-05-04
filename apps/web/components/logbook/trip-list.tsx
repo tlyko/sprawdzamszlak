@@ -22,11 +22,12 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import type { Trail, TrailGeoJson } from "@/components/map/types";
+import type { Peak, Trail, TrailGeoJson } from "@/components/map/types";
 import { TripRow } from "./trip-row";
 import { TripDetailPanel } from "./trip-detail-panel";
 import { extractTripMeta } from "./extract-trip-meta";
 import { FilterPills } from "./filter-pills";
+import { findPeakByTrailName } from "./match-peak";
 import {
   groupTrailsByYear,
   type LogbookFilter,
@@ -38,6 +39,10 @@ interface TripListProps {
   // detail panel to read distance / elevation / coords. Optional for callers
   // that don't need the panel (none today, but keeps the contract loose).
   trailGeoData?: TrailGeoJson[];
+  // Peaks roster — used to look up summit altitudes and surface them next to
+  // the trail name when a trail is named after a single peak. Optional so the
+  // contract doesn't break callers that don't have the roster handy.
+  peaks?: Peak[];
   selectedTripId: string | null;
   onSelect: (trailId: string | null) => void;
   isLoading: boolean;
@@ -46,11 +51,24 @@ interface TripListProps {
 export function TripList({
   trails,
   trailGeoData,
+  peaks,
   selectedTripId,
   onSelect,
   isLoading,
 }: TripListProps) {
   const [filter, setFilter] = useState<LogbookFilter>("all");
+
+  // Pre-compute trail-id → peak height once per (trails, peaks) change so
+  // each row doesn't walk the peak list on render.
+  const peakHeightByTrailId = useMemo(() => {
+    if (!peaks || peaks.length === 0) return new Map<string, number>();
+    const out = new Map<string, number>();
+    for (const trail of trails) {
+      const peak = findPeakByTrailName(trail, peaks);
+      if (peak?.height != null) out.set(trail.id, peak.height);
+    }
+    return out;
+  }, [trails, peaks]);
 
   // Per-type counts for the pill row — kept on the trails list (not
   // post-grouping) so they reflect "how many overall", not "how many
@@ -171,6 +189,7 @@ export function TripList({
                 selectedTripId={selectedTripId}
                 onSelect={onSelect}
                 selectedMeta={selectedMeta}
+                peakHeightByTrailId={peakHeightByTrailId}
               />
             ))}
           </ul>
@@ -186,6 +205,7 @@ interface YearGroupSectionProps {
   selectedTripId: string | null;
   onSelect: (trailId: string | null) => void;
   selectedMeta: ReturnType<typeof extractTripMeta>;
+  peakHeightByTrailId: ReadonlyMap<string, number>;
 }
 
 function YearGroupSection({
@@ -194,6 +214,7 @@ function YearGroupSection({
   selectedTripId,
   onSelect,
   selectedMeta,
+  peakHeightByTrailId,
 }: YearGroupSectionProps) {
   return (
     <li>
@@ -236,6 +257,7 @@ function YearGroupSection({
                   onSelect={(id) =>
                     onSelect(selectedTripId === id ? null : id)
                   }
+                  peakHeight={peakHeightByTrailId.get(trail.id) ?? null}
                 />
               )}
             </li>

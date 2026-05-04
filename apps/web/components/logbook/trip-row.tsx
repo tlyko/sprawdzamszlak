@@ -28,9 +28,13 @@ interface TripRowProps {
   // Optional hover handler — the parent forwards this to a "preview" map
   // state once that lands. Not wired in PR 3 to keep the surface tight.
   onHover?: ((trailId: string | null) => void) | undefined;
+  // Summit altitude in metres — rendered as a small `· 2503 m` suffix next
+  // to the type pill when the trail name matches a peak in the seed. Null
+  // when the trail isn't tied to a single summit (e.g. valley walks).
+  peakHeight?: number | null;
 }
 
-export function TripRow({ trail, isSelected, onSelect, onHover }: TripRowProps) {
+export function TripRow({ trail, isSelected, onSelect, onHover, peakHeight }: TripRowProps) {
   return (
     <button
       type="button"
@@ -72,8 +76,12 @@ export function TripRow({ trail, isSelected, onSelect, onHover }: TripRowProps) 
 
       <div className="mt-2 flex items-center gap-2">
         <TypePill type={trail.type} />
-        {/* Placeholder slot for date/distance/vertical — surfaced by PR 4
-            when the parser populates these fields on the manifest. */}
+        {peakHeight != null ? (
+          <span className="font-mono text-[11px] tabular-nums text-ink-3">
+            {peakHeight}{" "}
+            <span className="text-ink-3/70">m</span>
+          </span>
+        ) : null}
       </div>
     </button>
   );

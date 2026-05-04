@@ -117,6 +117,7 @@ export default function Home() {
         <TripList
           trails={trails}
           trailGeoData={trailGeoData}
+          peaks={peaks}
           selectedTripId={selectedTripId}
           onSelect={setSelectedTripId}
           isLoading={isLoading}
