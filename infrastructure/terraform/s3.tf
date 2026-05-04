@@ -23,7 +23,12 @@ resource "aws_s3_bucket_cors_configuration" "geojson_bucket_cors" {
     allowed_methods = ["GET", "HEAD"]
 
     allowed_origins = [
-      "https://sprawdzamszlak.pl"
+      "https://sprawdzamszlak.pl",
+      # Local dev — Next.js dev server (`pnpm -F sprawdzamszlak-frontend dev`)
+      # serves on localhost:3000 and fetches presigned GeoJSON URLs as JSON,
+      # which is CORS-checked. Without this entry trail overlay can't render
+      # in dev. Same allowlist sits in the API GW cors_configuration.
+      "http://localhost:3000",
     ]
 
     expose_headers  = []
