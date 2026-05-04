@@ -85,9 +85,9 @@ data "aws_iam_policy_document" "gha_terraform_perms" {
     resources = ["arn:aws:dynamodb:eu-west-1:214598715232:table/sprawdzamszlak-tfstate-locks"]
   }
 
-  # Lambda — manage all sprawdzamszlak Lambda functions and event source
-  # mappings. Wildcard on the project prefix so adding a function (e.g.
-  # the slice-C fetcher) doesn't require a CICD change.
+  # Lambda functions — sprawdzamszlak-* prefix. CreateEventSourceMapping
+  # is here because per IAM it operates on the *function* being targeted
+  # (not on the mapping that's about to be created).
   statement {
     sid    = "Lambda"
     effect = "Allow"
@@ -106,23 +106,37 @@ data "aws_iam_policy_document" "gha_terraform_perms" {
       "lambda:TagResource",
       "lambda:UntagResource",
       "lambda:ListTags",
+      "lambda:CreateEventSourceMapping",
     ]
-    resources = ["arn:aws:lambda:eu-west-1:214598715232:function:sprawdzamszlak-*"]
+    resources = ["arn:aws:lambda:eu-west-1:${data.aws_caller_identity.current.account_id}:function:sprawdzamszlak-*"]
   }
 
-  # Event source mappings (DDB Streams → fetcher Lambda) are identified by
-  # UUID, not by ARN, so resource-level scoping isn't possible. The five
-  # actions below operate only on mappings the role itself created.
+  # Existing event source mappings — Get/Update/Delete/tag operations on
+  # mapping ARNs. UUID is the only variable part; the rest is pinned to
+  # our region + account, so wildcard is much tighter than "*".
   statement {
     sid    = "LambdaEventSourceMappings"
     effect = "Allow"
     actions = [
-      "lambda:CreateEventSourceMapping",
       "lambda:GetEventSourceMapping",
       "lambda:UpdateEventSourceMapping",
       "lambda:DeleteEventSourceMapping",
-      "lambda:ListEventSourceMappings",
+      "lambda:ListTags",
+      "lambda:TagResource",
+      "lambda:UntagResource",
     ]
+    resources = [
+      "arn:aws:lambda:eu-west-1:${data.aws_caller_identity.current.account_id}:event-source-mapping:*",
+    ]
+  }
+
+  # ListEventSourceMappings is a List* call — IAM doesn't support resource-
+  # level permissions on it, "*" is required. Standalone statement so it's
+  # obvious the wildcard is forced by the API, not laziness.
+  statement {
+    sid       = "LambdaListEventSourceMappings"
+    effect    = "Allow"
+    actions   = ["lambda:ListEventSourceMappings"]
     resources = ["*"]
   }
 
