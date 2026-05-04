@@ -85,7 +85,9 @@ data "aws_iam_policy_document" "gha_terraform_perms" {
     resources = ["arn:aws:dynamodb:eu-west-1:214598715232:table/sprawdzamszlak-tfstate-locks"]
   }
 
-  # Lambda — manage the API function and its log group
+  # Lambda — manage all sprawdzamszlak Lambda functions and event source
+  # mappings. Wildcard on the project prefix so adding a function (e.g.
+  # the slice-C fetcher) doesn't require a CICD change.
   statement {
     sid    = "Lambda"
     effect = "Allow"
@@ -105,7 +107,23 @@ data "aws_iam_policy_document" "gha_terraform_perms" {
       "lambda:UntagResource",
       "lambda:ListTags",
     ]
-    resources = ["arn:aws:lambda:eu-west-1:214598715232:function:sprawdzamszlak-app"]
+    resources = ["arn:aws:lambda:eu-west-1:214598715232:function:sprawdzamszlak-*"]
+  }
+
+  # Event source mappings (DDB Streams → fetcher Lambda) are identified by
+  # UUID, not by ARN, so resource-level scoping isn't possible. The five
+  # actions below operate only on mappings the role itself created.
+  statement {
+    sid    = "LambdaEventSourceMappings"
+    effect = "Allow"
+    actions = [
+      "lambda:CreateEventSourceMapping",
+      "lambda:GetEventSourceMapping",
+      "lambda:UpdateEventSourceMapping",
+      "lambda:DeleteEventSourceMapping",
+      "lambda:ListEventSourceMappings",
+    ]
+    resources = ["*"]
   }
 
   # IAM — only roles/policies/oidc-provider this project owns

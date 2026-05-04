@@ -19,8 +19,14 @@ const distDir = resolve(here, 'dist');
 await mkdir(distDir, { recursive: true });
 
 await build({
-  entryPoints: [resolve(here, 'src/handler.ts')],
-  outfile: resolve(distDir, 'handler.js'),
+  // Two entry points → two outfiles in dist/ (handler.js + fetcher-handler.js).
+  // Both share the same zip; Lambda picks which to invoke via the `handler`
+  // configuration on each aws_lambda_function resource.
+  entryPoints: [
+    resolve(here, 'src/handler.ts'),
+    resolve(here, 'src/strava/fetcher-handler.ts'),
+  ],
+  outdir: distDir,
   bundle: true,
   platform: 'node',
   target: 'node22',

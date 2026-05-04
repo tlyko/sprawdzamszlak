@@ -25,10 +25,41 @@ data "aws_iam_policy_document" "sprawdzamszlak_db_policy_doc" {
     sid    = "AllowAppToReadGeoJSON"
     effect = "Allow"
     actions = [
-      "s3:GetObject"
+      "s3:GetObject",
     ]
     resources = [
       "${aws_s3_bucket.geojson_bucket.arn}/trails/*",
+    ]
+  }
+
+  # Slice C: fetcher Lambda writes new strava-imported routes as
+  # trails/strava_{activity_id}.geojson. Limited to PutObject so the role
+  # can never delete or list bucket contents.
+  statement {
+    sid    = "AllowFetcherToWriteGeoJSON"
+    effect = "Allow"
+    actions = [
+      "s3:PutObject",
+    ]
+    resources = [
+      "${aws_s3_bucket.geojson_bucket.arn}/trails/*",
+    ]
+  }
+
+  # Slice C: fetcher Lambda is triggered by the DDB Stream on the
+  # strava-events table (NEW_IMAGE). These actions don't act on the table
+  # itself, only on its stream — scoped to that one stream ARN.
+  statement {
+    sid    = "AllowFetcherToConsumeEventsStream"
+    effect = "Allow"
+    actions = [
+      "dynamodb:DescribeStream",
+      "dynamodb:GetRecords",
+      "dynamodb:GetShardIterator",
+      "dynamodb:ListStreams",
+    ]
+    resources = [
+      aws_dynamodb_table.strava_events_table.stream_arn,
     ]
   }
 

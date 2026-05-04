@@ -37,6 +37,49 @@ resource "aws_lambda_function" "sprawdzamszlak_lambda" {
   depends_on = [aws_cloudwatch_log_group.lambda_logs]
 }
 
+# Slice C: fetcher Lambda. Same zip as the API Lambda, different handler
+# entry point (esbuild produces both bundles in one build). The fetcher
+# is on the cold path — DDB Streams gives us seconds, not the API's 2s
+# webhook deadline — so a higher timeout is fine for slow Strava calls.
+
+resource "aws_cloudwatch_log_group" "fetcher_logs" {
+  name              = "/aws/lambda/${local.app_name}-fetcher"
+  retention_in_days = 14
+}
+
+resource "aws_lambda_function" "sprawdzamszlak_fetcher" {
+  function_name    = "${local.app_name}-fetcher"
+  filename         = data.archive_file.lambda_zip.output_path
+  source_code_hash = data.archive_file.lambda_zip.output_base64sha256
+  role             = aws_iam_role.sprawdzamszlak_app_role.arn
+
+  handler     = "strava/fetcher-handler.handler"
+  runtime     = "nodejs22.x"
+  timeout     = 30
+  memory_size = 256
+
+  environment {
+    variables = {
+      DYNAMODB_ROUTES_TABLE_NAME = local.sprawdzamszlak_routes_table.name
+      S3_BUCKET_NAME             = aws_s3_bucket.geojson_bucket.id
+      MY_AWS_REGION              = "eu-west-1"
+    }
+  }
+
+  depends_on = [aws_cloudwatch_log_group.fetcher_logs]
+}
+
+resource "aws_lambda_event_source_mapping" "fetcher_from_events_stream" {
+  event_source_arn  = aws_dynamodb_table.strava_events_table.stream_arn
+  function_name     = aws_lambda_function.sprawdzamszlak_fetcher.arn
+  starting_position = "LATEST"
+
+  # Defaults are fine for our throughput (handful of events per week):
+  #   batch_size = 100, maximum_batching_window_in_seconds = 0
+  # No on_failure SQS — failed events stay in the source table for 7 days
+  # via TTL and can be replayed by re-inserting (Streams will fire again).
+}
+
 resource "aws_apigatewayv2_api" "http_api" {
   name          = "${local.app_name}-api"
   protocol_type = "HTTP"
