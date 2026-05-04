@@ -11,6 +11,12 @@
 
   "assets": {
     "directory": "./apps/web/out",
-    "not_found_handling": "404-page"
+    // SPA fallback so dynamic routes like /trasy/[slug]/ (Strava-imported
+    // activities, slugs known only at runtime) hydrate against the static
+    // shell. Pre-rendered routes (/, /strava/, /strava/connected/) still
+    // serve directly. Trade-off: typo URLs serve index.html and the SPA
+    // shows an empty state instead of a hard 404 — acceptable for a
+    // single-user app.
+    "not_found_handling": "single-page-application"
   }
 }
