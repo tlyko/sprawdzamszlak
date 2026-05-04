@@ -19,6 +19,7 @@
 
 import { useEffect, useState } from "react";
 import type { Peak, Trail, TrailGeoJson } from "@/components/map/types";
+import { applyTypeOverrides } from "./type-overrides";
 
 // Pulled from NEXT_PUBLIC_API_URL when set; the prod fallback matches the
 // previous MapShell hard-coded value so removing the env var doesn't break
@@ -62,7 +63,7 @@ export function useTripData(): TripData {
 
         if (routesRes.ok) {
           const data: Trail[] = await routesRes.json();
-          if (!cancelled) setTrails(data);
+          if (!cancelled) setTrails(applyTypeOverrides(data));
         } else {
           console.error("[logbook] routes fetch failed:", routesRes.statusText);
         }
