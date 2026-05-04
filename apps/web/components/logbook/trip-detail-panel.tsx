@@ -20,7 +20,7 @@
 "use client";
 
 import { useState } from "react";
-import type { Trail } from "@/components/map/types";
+import type { Trail, TripPhoto } from "@/components/map/types";
 import { TypePill } from "./type-pill";
 import { ElevationProfile } from "./elevation-profile";
 import type { TripMeta } from "./extract-trip-meta";
@@ -130,6 +130,65 @@ function ShareLinkButton({ trailId }: { trailId: string }) {
     >
       {label}
     </button>
+  );
+}
+
+// Photo grid — three-column on desktop, two on mobile. Aspect ratio is
+// locked to 4:3 so a row of mixed portrait/landscape photos doesn't jitter
+// the layout while images load. `loading="lazy"` keeps off-screen photos
+// from blocking the panel render. Captions render as a small overlay on
+// hover (and as a screen-reader-only label always) — no fancy lightbox.
+function PhotoGrid({
+  photos,
+  trailName,
+}: {
+  photos: TripPhoto[];
+  trailName: string;
+}) {
+  return (
+    <section aria-label="Zdjęcia z trasy">
+      <h4 className="mb-2 font-mono text-[11px] uppercase tracking-[0.08em] text-ink-3">
+        zdjęcia
+      </h4>
+      <ul
+        role="list"
+        className="grid grid-cols-2 gap-1.5 sm:grid-cols-3"
+      >
+        {photos.map((photo, i) => {
+          const alt =
+            photo.caption && photo.caption.trim().length > 0
+              ? photo.caption
+              : `${trailName} — zdjęcie ${i + 1}`;
+          return (
+            <li key={photo.url} className="overflow-hidden rounded-sm border border-hairline bg-surface-2">
+              <a
+                href={photo.url}
+                target="_blank"
+                rel="noreferrer noopener"
+                className="group relative block aspect-[4/3] focus-visible:outline-2 focus-visible:outline-accent"
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element --
+                    next/image needs a Node loader; we run output:'export' on
+                    Cloudflare Pages, and the photo URL is a TTL-bound S3
+                    presign that next/image's loader couldn't resign anyway. */}
+                <img
+                  src={photo.url}
+                  alt={alt}
+                  loading="lazy"
+                  decoding="async"
+                  className="absolute inset-0 h-full w-full object-cover transition-opacity duration-200 group-hover:opacity-90"
+                />
+                {photo.caption ? (
+                  <span className="pointer-events-none absolute inset-x-0 bottom-0 line-clamp-2 bg-gradient-to-t from-black/80 via-black/40 to-transparent px-2 pb-1.5 pt-4 font-mono text-[10px] leading-tight text-firn opacity-0 transition-opacity duration-200 group-hover:opacity-100">
+                    {photo.caption}
+                  </span>
+                ) : null}
+              </a>
+            </li>
+          );
+        })}
+      </ul>
+    </section>
   );
 }
 
@@ -253,6 +312,14 @@ export function TripDetailPanel({
       {/* Elevation profile. The component itself handles the no-altitude
           fallback, so we hand it whatever coords we have. */}
       <ElevationProfile coordinates={coordinates} />
+
+      {/* Photos from Strava, re-hosted in S3 by the fetcher Lambda. The
+          section hides itself when the manifest carries no photos.
+          Click → open original in new tab; we don't ship a lightbox library
+          for one feature. */}
+      {trail.photos && trail.photos.length > 0 ? (
+        <PhotoGrid photos={trail.photos} trailName={trail.name} />
+      ) : null}
 
       {/* Notes — only present for Strava-imported routes that carried a
           description. Manual seeds skip this. */}

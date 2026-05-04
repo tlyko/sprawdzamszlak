@@ -23,8 +23,11 @@ import {
   PeakSchema,
   RouteSchema,
   type Route,
+  type RoutePhoto,
+  type RoutePhotoWithUrl,
   type RouteWithUrl,
   SAFE_FILENAME,
+  SAFE_PHOTO_KEY,
 } from '@sprawdzamszlak/shared';
 
 import { ddb, s3, envOrThrow } from './clients.js';
@@ -160,11 +163,48 @@ async function enrichWithPresignedUrls(routes: Route[]): Promise<RouteWithUrl[]>
         }),
         { expiresIn: 900 }, // 15 minutes
       );
-      enriched.push({ ...route, geojson_url: url });
+      const { photos: rawPhotos, ...rest } = route;
+      const photos = rawPhotos ? await enrichPhotos(route.id, rawPhotos) : undefined;
+      enriched.push({
+        ...rest,
+        geojson_url: url,
+        ...(photos && photos.length > 0 ? { photos } : {}),
+      });
     } catch (err) {
       // Skip a single bad route rather than failing the whole list.
       console.warn('Failed to presign URL for route', { id: route.id, err });
     }
   }
   return enriched;
+}
+
+async function enrichPhotos(
+  routeId: string,
+  photos: RoutePhoto[],
+): Promise<RoutePhotoWithUrl[]> {
+  const out: RoutePhotoWithUrl[] = [];
+  for (const photo of photos) {
+    if (!SAFE_PHOTO_KEY.test(photo.key)) {
+      // Same belt-and-braces as filenames above — schema already validated,
+      // but a future schema loosen shouldn't open the bucket.
+      console.warn('Skipping photo with bad key', { routeId, key: photo.key });
+      continue;
+    }
+    try {
+      const url = await getSignedUrl(
+        s3,
+        new GetObjectCommand({
+          Bucket: S3_BUCKET,
+          Key: `trails/${photo.key}`,
+        }),
+        { expiresIn: 900 }, // 15 minutes — same TTL as the GeoJSON link
+      );
+      out.push(
+        photo.caption ? { url, caption: photo.caption } : { url },
+      );
+    } catch (err) {
+      console.warn('Failed to presign photo', { routeId, key: photo.key, err });
+    }
+  }
+  return out;
 }

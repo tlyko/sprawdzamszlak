@@ -52,6 +52,15 @@ export interface Trail {
   name: string;
   type: TrailType;
   geojson_url: string;
+  // Strava photos re-hosted in S3 by the fetcher Lambda and exposed by the
+  // API as presigned URLs (15 min TTL, same shape as `geojson_url`). Absent
+  // for activities without photos and for manual seeds.
+  photos?: TripPhoto[];
+}
+
+export interface TripPhoto {
+  url: string;
+  caption?: string;
 }
 
 // Generic GeoJSON payload as returned by the trail S3 URLs. The Strava

@@ -19,6 +19,7 @@ import {
   StravaTokensSchema,
   SPORT_TYPE_ALLOWLIST,
   sportTypeToRouteType,
+  type RoutePhoto,
   type StravaTokens,
   type StravaSportType,
 } from '@sprawdzamszlak/shared';
@@ -123,6 +124,19 @@ interface StravaActivity {
   start_date: string;
   distance?: number;
   total_elevation_gain?: number;
+  photos?: {
+    primary?: { id?: number } | null;
+    count?: number;
+  } | null;
+}
+
+// Shape of a single photo from `GET /activities/{id}/photos?size=600`.
+// `urls` is keyed by size — we always ask for 600. Caption is owner-set on
+// Strava and may be missing.
+interface StravaPhoto {
+  unique_id?: string;
+  caption?: string | null;
+  urls?: Record<string, string | undefined>;
 }
 
 // Strava streams API returns the keyed-by-type shape regardless of the
@@ -162,6 +176,108 @@ async function fetchActivityStreams(id: number, accessToken: string): Promise<St
     throw new Error(`fetchActivityStreams ${id} failed: HTTP ${resp.status} ${body}`);
   }
   return (await resp.json()) as StravaStreams;
+}
+
+async function fetchActivityPhotos(
+  id: number,
+  accessToken: string,
+): Promise<StravaPhoto[]> {
+  // The activity payload only carries the primary photo's id; the full list
+  // (with size-600 URLs) lives behind a separate endpoint. `photo_sources`
+  // is required to get the urls map, otherwise Strava returns just metadata.
+  const url = new URL(`https://www.strava.com/api/v3/activities/${id}/photos`);
+  url.searchParams.set('size', '600');
+  url.searchParams.set('photo_sources', 'true');
+  const resp = await fetch(url, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  if (resp.status === 404) {
+    // Owner deleted the activity between the streams call and this one.
+    // Treat the same as "no photos" — caller already handled the streams 404.
+    return [];
+  }
+  if (!resp.ok) {
+    const body = await resp.text().catch(() => '<unreadable>');
+    console.warn(
+      `fetchActivityPhotos ${id} failed: HTTP ${resp.status} ${body} — continuing without photos`,
+    );
+    return [];
+  }
+  const data = (await resp.json()) as unknown;
+  return Array.isArray(data) ? (data as StravaPhoto[]) : [];
+}
+
+const MAX_PHOTOS_PER_ACTIVITY = 20;
+
+async function persistPhotos(
+  activityId: number,
+  rawPhotos: StravaPhoto[],
+): Promise<RoutePhoto[]> {
+  if (rawPhotos.length === 0) return [];
+  const sliced = rawPhotos.slice(0, MAX_PHOTOS_PER_ACTIVITY);
+  const stored: RoutePhoto[] = [];
+
+  for (let i = 0; i < sliced.length; i++) {
+    const photo = sliced[i];
+    if (!photo) continue;
+    // Strava sizes are returned as keys "100", "600", etc. We asked for 600
+    // — fall back to whatever the largest variant is if 600 is missing
+    // (rare, but seen on legacy uploads).
+    const url =
+      photo.urls?.['600'] ??
+      photo.urls?.['1024'] ??
+      photo.urls?.['100'] ??
+      Object.values(photo.urls ?? {})[0];
+    if (typeof url !== 'string' || !url.startsWith('https://')) {
+      console.warn(`Skipping photo ${i} on activity ${activityId} — no usable URL`);
+      continue;
+    }
+
+    let body: ArrayBuffer;
+    try {
+      const imgRes = await fetch(url);
+      if (!imgRes.ok) {
+        console.warn(
+          `Photo ${i} on activity ${activityId} HTTP ${imgRes.status} — skipping`,
+        );
+        continue;
+      }
+      body = await imgRes.arrayBuffer();
+    } catch (err) {
+      console.warn(`Photo ${i} on activity ${activityId} fetch failed`, err);
+      continue;
+    }
+
+    const key = `photos/${activityId}/${i}.jpg`;
+    try {
+      await s3.send(
+        new PutObjectCommand({
+          Bucket: S3_BUCKET,
+          Key: `trails/${key}`,
+          Body: new Uint8Array(body),
+          // Strava CDN serves JPEGs even when the source was a PNG/HEIC
+          // (their pipeline transcodes). Hard-coding JPEG matches the .jpg
+          // suffix in the key and avoids depending on a Content-Type
+          // header from the CDN response.
+          ContentType: 'image/jpeg',
+          CacheControl: 'public, max-age=31536000, immutable',
+        }),
+      );
+    } catch (err) {
+      console.warn(`S3 PUT failed for photo ${key}`, err);
+      continue;
+    }
+
+    const trimmedCaption =
+      typeof photo.caption === 'string' && photo.caption.trim().length > 0
+        ? photo.caption.trim().slice(0, 500)
+        : undefined;
+    stored.push(
+      trimmedCaption ? { key, caption: trimmedCaption } : { key },
+    );
+  }
+
+  return stored;
 }
 
 // ---------------------------------------------------------------------------
@@ -222,6 +338,7 @@ function buildGeoJSON(activity: StravaActivity, streams: StravaStreams): GeoJSON
 async function persistRoute(
   activity: StravaActivity,
   geojson: GeoJSONFeature,
+  photos: RoutePhoto[],
 ): Promise<void> {
   // id allows hyphens (PeakIdSchema), filename does not (SAFE_FILENAME).
   const id = `strava-${activity.id}`;
@@ -244,6 +361,9 @@ async function persistRoute(
         name: activity.name,
         type: sportTypeToRouteType(activity.sport_type as StravaSportType),
         filename,
+        // Only write `photos` when we actually have any — keeps the field
+        // absent for activities without photos rather than persisting [].
+        ...(photos.length > 0 ? { photos } : {}),
       },
     }),
   );
@@ -291,6 +411,24 @@ export async function processActivityEvent(input: FetcherEventInput): Promise<vo
     return;
   }
 
-  await persistRoute(activity, geojson);
-  console.info(`Persisted activity ${activity.id} as route strava-${activity.id}`);
+  // Photos are best-effort — failures here log and continue so a flaky
+  // image fetch doesn't block the route from getting persisted at all.
+  // Only call the photos endpoint when the activity payload says there
+  // are any (avoid one extra Strava API hit per non-photo activity).
+  const photoCount = activity.photos?.count ?? 0;
+  let photos: RoutePhoto[] = [];
+  if (photoCount > 0) {
+    try {
+      const raw = await fetchActivityPhotos(activity.id, accessToken);
+      photos = await persistPhotos(activity.id, raw);
+    } catch (err) {
+      console.warn(`Photo persistence failed for activity ${activity.id}`, err);
+    }
+  }
+
+  await persistRoute(activity, geojson, photos);
+  console.info(
+    `Persisted activity ${activity.id} as route strava-${activity.id}` +
+      (photos.length > 0 ? ` with ${photos.length} photo(s)` : ''),
+  );
 }
