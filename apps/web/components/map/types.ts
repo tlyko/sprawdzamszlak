@@ -34,7 +34,18 @@ export interface Peak {
   wiki_url?: string;
 }
 
-export type TrailType = "official" | "off-piste";
+// Mirrors RouteTypeSchema in @sprawdzamszlak/shared. Five values:
+//   official  — PTTK/TANAP marked trail (manual seed only)
+//   off-piste — Tatra unmarked walking/scrambling
+//   walk      — Strava `Walk` (lowland/forest)
+//   ski-tour  — Strava `BackcountrySki` / `AlpineSki`
+//   climbing  — Strava `RockClimbing`
+export type TrailType =
+  | "official"
+  | "off-piste"
+  | "walk"
+  | "ski-tour"
+  | "climbing";
 
 export interface Trail {
   id: string;

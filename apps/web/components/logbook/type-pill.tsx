@@ -30,6 +30,21 @@ const PILL_CONFIG: Record<
     colorClass: "text-rusalka",
     borderClass: "border-rusalka/40",
   },
+  walk: {
+    label: "spacer",
+    colorClass: "text-lichen",
+    borderClass: "border-lichen/40",
+  },
+  "ski-tour": {
+    label: "skitur",
+    colorClass: "text-firn",
+    borderClass: "border-firn/40",
+  },
+  climbing: {
+    label: "wspinaczka",
+    colorClass: "text-ink-1",
+    borderClass: "border-ink-1/40",
+  },
 };
 
 export function TypePill({ type }: TypePillProps) {

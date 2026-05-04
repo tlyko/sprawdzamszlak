@@ -18,6 +18,7 @@ import { GetParameterCommand, PutParameterCommand } from '@aws-sdk/client-ssm';
 import {
   StravaTokensSchema,
   SPORT_TYPE_ALLOWLIST,
+  sportTypeToRouteType,
   type StravaTokens,
   type StravaSportType,
 } from '@sprawdzamszlak/shared';
@@ -241,7 +242,7 @@ async function persistRoute(
       Item: {
         id,
         name: activity.name,
-        type: 'off-piste', // sport_type-based heuristics deferred
+        type: sportTypeToRouteType(activity.sport_type as StravaSportType),
         filename,
       },
     }),

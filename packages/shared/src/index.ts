@@ -57,8 +57,38 @@ export type Peak = z.infer<typeof PeakSchema>;
 // ---------------------------------------------------------------------------
 // Route — a hiking/off-piste track stored as GeoJSON in S3, metadata in DDB
 // ---------------------------------------------------------------------------
-export const RouteTypeSchema = z.enum(['off-piste', 'official']);
+// Route categories drive trail style on the map. Five values:
+//   - official     — marked PTTK/TANAP trail (manual seed only)
+//   - off-piste    — Tatra unmarked walking/scrambling (default, manual seed)
+//   - walk         — Strava `Walk` (lowland/forest, distinct from off-piste)
+//   - ski-tour     — Strava `BackcountrySki` / `AlpineSki`
+//   - climbing     — Strava `RockClimbing`
+export const RouteTypeSchema = z.enum([
+  'official',
+  'off-piste',
+  'walk',
+  'ski-tour',
+  'climbing',
+]);
 export type RouteType = z.infer<typeof RouteTypeSchema>;
+
+// Strava sport_type → our route type. Values outside SPORT_TYPE_ALLOWLIST
+// don't reach this function (fetcher drops them). Hike maps to off-piste
+// because owner records mountain hikes as Hike on Strava — the same trip
+// in seed data would already be "off-piste".
+export function sportTypeToRouteType(sportType: StravaSportType): RouteType {
+  switch (sportType) {
+    case 'Hike':
+      return 'off-piste';
+    case 'Walk':
+      return 'walk';
+    case 'RockClimbing':
+      return 'climbing';
+    case 'BackcountrySki':
+    case 'AlpineSki':
+      return 'ski-tour';
+  }
+}
 
 export const RouteSchema = z.object({
   id: PeakIdSchema, // same slug rules
