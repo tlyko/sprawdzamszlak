@@ -27,7 +27,7 @@ import {
 import type { TripCoordinate } from "@/components/map/types";
 
 export default function KoronaTatrPage() {
-  const { peaks, trailGeoData, isLoading } = useTripData();
+  const { peaks, trails, trailGeoData, isLoading } = useTripData();
 
   // Pull each trail's LineString coords up-front so the bagged scan reads
   // straight arrays. Trails with no usable geometry collapse to []; they
@@ -40,8 +40,8 @@ export default function KoronaTatrPage() {
   }, [trailGeoData]);
 
   const status = useMemo(
-    () => computeWktStatus(peaks, trailCoords),
-    [peaks, trailCoords]
+    () => computeWktStatus(peaks, trails, trailCoords),
+    [peaks, trails, trailCoords]
   );
 
   const baggedCount = status.filter((s) => s.bagged).length;
@@ -107,7 +107,9 @@ export default function KoronaTatrPage() {
               },
               bagged: false,
             }))
-        ).map(({ peak, bagged }, idx) => {
+        ).map((entry, idx) => {
+          const { peak, bagged } = entry;
+          const trailId = bagged ? entry.trailId : undefined;
           const cellClasses = bagged
             ? "border-hairline bg-surface-1 hover:bg-surface-2 transition-colors"
             : "border-hairline bg-surface-1";
@@ -167,11 +169,18 @@ export default function KoronaTatrPage() {
             </article>
           );
 
+          // Bagged peaks deep-link back to the home map with the bagging
+          // trail pre-selected (spotlight + fly-to). Falls back to the static
+          // peak page when, somehow, we have a bagged status without a trail
+          // id — shouldn't happen but is the safer default.
+          const href = trailId
+            ? `/?trip=${encodeURIComponent(trailId)}`
+            : `/szczyty/${peak.id}/`;
           return (
             <li key={peak.id} className="contents">
               {bagged ? (
                 <Link
-                  href={`/szczyty/${peak.id}/`}
+                  href={href}
                   className="block focus-visible:outline-2 focus-visible:outline-accent"
                 >
                   {inner}

@@ -26,7 +26,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { TripList } from "@/components/logbook/trip-list";
 import { useTripData } from "@/components/logbook/use-trip-data";
@@ -51,6 +51,36 @@ const Map = dynamic<MapShellProps>(
 export default function Home() {
   const { peaks, trails, trailGeoData, isLoading } = useTripData();
   const [selectedTripId, setSelectedTripId] = useState<string | null>(null);
+
+  // One-shot deep-link from `?trip=<id>` — wired so /korona-tatr/ can
+  // hand off a bagged peak's trail to this page (clicking a bagged peak
+  // there should land here with the relevant trail spotlit and the map
+  // already flown to its bounds). Reads window.location directly so the
+  // page can stay in `output: 'export'` without a Suspense boundary.
+  // Runs after `trails` arrives so the map's FlyToSelected and the list's
+  // scroll-into-view both have rows to act on. The ref guards against
+  // double-applying (StrictMode) and against later trail refetches
+  // overriding a manual selection the user has since made.
+  const initialTripFromUrlApplied = useRef(false);
+  useEffect(() => {
+    if (initialTripFromUrlApplied.current) return;
+    if (typeof window === "undefined" || trails.length === 0) return;
+    const params = new URLSearchParams(window.location.search);
+    const tripId = params.get("trip");
+    initialTripFromUrlApplied.current = true;
+    if (!tripId || !trails.some((t) => t.id === tripId)) return;
+    // Defer to a microtask: subscribing-to-external-source (URL) is a valid
+    // setState-in-effect case, but doing it synchronously trips the
+    // react-hooks/set-state-in-effect lint. The same defer pattern is used in
+    // peak-detail-route.tsx for the not-found branch.
+    let cancelled = false;
+    queueMicrotask(() => {
+      if (!cancelled) setSelectedTripId(tripId);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [trails]);
 
   return (
     <main
