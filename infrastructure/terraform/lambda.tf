@@ -26,6 +26,7 @@ resource "aws_lambda_function" "sprawdzamszlak_lambda" {
       DYNAMODB_TABLE_NAME        = local.sprawdzamszlak_table.name
       DYNAMODB_ROUTES_TABLE_NAME = local.sprawdzamszlak_routes_table.name
       OAUTH_STATES_TABLE         = local.strava_oauth_states_table.name
+      STRAVA_EVENTS_TABLE        = local.strava_events_table.name
       S3_BUCKET_NAME             = aws_s3_bucket.geojson_bucket.id
       MY_AWS_REGION              = "eu-west-1"
       STRAVA_REDIRECT_URI        = "${aws_apigatewayv2_api.http_api.api_endpoint}/${local.api_stage}/strava/oauth/callback"
@@ -85,6 +86,18 @@ resource "aws_apigatewayv2_route" "get_strava_oauth_callback" {
   target    = "integrations/${aws_apigatewayv2_integration.lambda_integration.id}"
 }
 
+resource "aws_apigatewayv2_route" "get_strava_webhook" {
+  api_id    = aws_apigatewayv2_api.http_api.id
+  route_key = "GET /strava/webhook"
+  target    = "integrations/${aws_apigatewayv2_integration.lambda_integration.id}"
+}
+
+resource "aws_apigatewayv2_route" "post_strava_webhook" {
+  api_id    = aws_apigatewayv2_api.http_api.id
+  route_key = "POST /strava/webhook"
+  target    = "integrations/${aws_apigatewayv2_integration.lambda_integration.id}"
+}
+
 resource "aws_apigatewayv2_deployment" "main_deployment" {
   api_id = aws_apigatewayv2_api.http_api.id
 
@@ -94,6 +107,8 @@ resource "aws_apigatewayv2_deployment" "main_deployment" {
       aws_apigatewayv2_route.get_routes_route,
       aws_apigatewayv2_route.get_strava_oauth_start,
       aws_apigatewayv2_route.get_strava_oauth_callback,
+      aws_apigatewayv2_route.get_strava_webhook,
+      aws_apigatewayv2_route.post_strava_webhook,
       aws_apigatewayv2_integration.lambda_integration
     ]))
   }
