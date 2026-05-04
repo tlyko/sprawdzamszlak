@@ -86,6 +86,7 @@ export default function Home() {
       <div className="order-2 min-h-0 flex-1 md:order-1 md:h-full md:w-[420px] md:flex-none">
         <TripList
           trails={trails}
+          trailGeoData={trailGeoData}
           selectedTripId={selectedTripId}
           onSelect={setSelectedTripId}
           isLoading={isLoading}
