@@ -17,6 +17,9 @@
  * No fetching here — the page above (logbook home or /trasy/[slug]) owns the
  * manifest + GeoJSON loading. This component is a pure render.
  */
+"use client";
+
+import { useState } from "react";
 import type { Trail } from "@/components/map/types";
 import { TypePill } from "./type-pill";
 import { ElevationProfile } from "./elevation-profile";
@@ -82,6 +85,52 @@ function formatElevation(meters: number): string {
   // streams and avoids implying a centimetre-perfect figure.
   const rounded = Math.round(meters / 5) * 5;
   return `+${rounded} m`;
+}
+
+// "Skopiuj link" button — copies the canonical /trasy/[id]/ URL so the
+// receiver lands on the same view (with OG preview) regardless of where
+// the share originated. The button text flips to "skopiowano" for two
+// seconds on success; failures fall back to "spróbuj ręcznie" so the
+// user notices the clipboard call didn't go through (some browsers
+// require user-gesture context that may have been lost).
+function ShareLinkButton({ trailId }: { trailId: string }) {
+  const [feedback, setFeedback] = useState<"idle" | "ok" | "fail">("idle");
+
+  async function copy() {
+    if (typeof window === "undefined") return;
+    const url = `${window.location.origin}/trasy/${trailId}/`;
+    try {
+      await navigator.clipboard.writeText(url);
+      setFeedback("ok");
+    } catch {
+      setFeedback("fail");
+    }
+    window.setTimeout(() => setFeedback("idle"), 2000);
+  }
+
+  const label =
+    feedback === "ok"
+      ? "skopiowano"
+      : feedback === "fail"
+        ? "spróbuj ręcznie"
+        : "skopiuj link";
+
+  return (
+    <button
+      type="button"
+      onClick={copy}
+      aria-live="polite"
+      className={
+        feedback === "ok"
+          ? "font-mono text-[12px] uppercase tracking-[0.06em] text-success transition-colors"
+          : feedback === "fail"
+            ? "font-mono text-[12px] uppercase tracking-[0.06em] text-danger transition-colors"
+            : "font-mono text-[12px] uppercase tracking-[0.06em] hover:text-ink-1 transition-colors"
+      }
+    >
+      {label}
+    </button>
+  );
 }
 
 // Polish labels for the Strava sport_type values our fetcher accepts.
@@ -225,6 +274,7 @@ export function TripDetailPanel({
         >
           pobierz GPX
         </a>
+        <ShareLinkButton trailId={trail.id} />
         {properties?.strava_activity_id !== undefined ? (
           <a
             href={`https://www.strava.com/activities/${properties.strava_activity_id}`}

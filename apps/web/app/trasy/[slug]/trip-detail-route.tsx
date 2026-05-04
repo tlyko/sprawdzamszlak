@@ -16,7 +16,7 @@
  */
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 
@@ -25,6 +25,7 @@ import {
   extractTripMeta,
   type TripMeta,
 } from "@/components/logbook/extract-trip-meta";
+import { useOgMeta } from "@/components/logbook/og-meta";
 import type { Trail, TrailGeoJson } from "@/components/map/types";
 
 const API_URL_BASE =
@@ -102,6 +103,15 @@ export function TripDetailRoute() {
     };
   }, [slug]);
 
+  // Build OG meta only when the trip is ready. The hook handles the
+  // null-input case gracefully (no-op + no cleanup), so loading / error
+  // states keep the layout's default tags.
+  const ogInput = useMemo(
+    () => (state.kind === "ready" ? buildOgInput(state.trail, state.meta) : null),
+    [state]
+  );
+  useOgMeta(ogInput);
+
   return (
     <main
       className="mx-auto w-full max-w-[640px] flex-1"
@@ -147,4 +157,53 @@ export function TripDetailRoute() {
       )}
     </main>
   );
+}
+
+// Polish labels — kept inline so this file is self-contained for the OG
+// description build. Mirrors trip-detail-panel.tsx and statystyki/page.tsx;
+// extract to a shared module if a fourth caller appears.
+const SPORT_TYPE_OG_LABEL: Record<string, string> = {
+  Hike: "wędrówka",
+  TrailRun: "bieg górski",
+  Run: "bieg",
+  Walk: "spacer",
+  Ride: "rower",
+  AlpineSki: "narty zjazdowe",
+  BackcountrySki: "skitour",
+  RockClimbing: "wspinaczka",
+  Snowshoe: "rakiety śnieżne",
+};
+
+function buildOgInput(trail: Trail, meta: TripMeta | null) {
+  const props = meta?.properties;
+  const parts: string[] = [];
+
+  if (props?.sport_type) {
+    parts.push(SPORT_TYPE_OG_LABEL[props.sport_type] ?? props.sport_type.toLowerCase());
+  }
+  if (typeof props?.distance === "number" && props.distance > 0) {
+    parts.push(`${(props.distance / 1000).toFixed(1).replace(".", ",")} km`);
+  }
+  if (
+    typeof props?.total_elevation_gain === "number" &&
+    props.total_elevation_gain > 0
+  ) {
+    const rounded = Math.round(props.total_elevation_gain / 5) * 5;
+    parts.push(`${rounded} m przewyższenia`);
+  }
+
+  // Fallback when the manifest carries nothing — the title alone still beats
+  // the layout default for share previews.
+  const description =
+    parts.length > 0 ? parts.join(" • ") : "Trasa w kronice tatrzańskiej.";
+
+  // Anchor on origin so the URL is canonical regardless of where the user
+  // currently is. Falls back to the slug-relative path on the (rare) SSR
+  // pre-pass before the hook is allowed to mutate document.head.
+  const origin = typeof window !== "undefined" ? window.location.origin : "";
+  return {
+    title: trail.name,
+    description,
+    url: `${origin}/trasy/${trail.id}/`,
+  };
 }
