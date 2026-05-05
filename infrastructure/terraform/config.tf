@@ -1,10 +1,15 @@
 terraform {
   backend "s3" {
-    bucket         = "sprawdzamszlak-tfstate-214598715232"
-    key            = "sprawdzamszlak/terraform.tfstate"
-    region         = "eu-west-1"
-    dynamodb_table = "sprawdzamszlak-tfstate-locks"
-    encrypt        = true
+    bucket  = "sprawdzamszlak-tfstate-214598715232"
+    key     = "sprawdzamszlak/terraform.tfstate"
+    region  = "eu-west-1"
+    encrypt = true
+
+    # Replaces `dynamodb_table` (deprecated since TF 1.10). Locking now
+    # uses an S3 .tflock object alongside the state file — same bucket,
+    # zero extra infra. The DynamoDB locks table can be deleted by hand
+    # after a few clean GHA runs.
+    use_lockfile = true
   }
 
   required_providers {
