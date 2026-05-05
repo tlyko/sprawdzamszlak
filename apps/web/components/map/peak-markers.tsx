@@ -70,10 +70,12 @@ function PeakMarker({ peak, tier }: PeakMarkerProps) {
               <span className="peak-popup__altitude-unit">m</span>
             </p>
           ) : null}
-          <p className="peak-popup__row">
-            <span className="peak-popup__label">trudność</span>{" "}
-            {peak.trudnosc}
-          </p>
+          {peak.trudnosc ? (
+            <p className="peak-popup__row">
+              <span className="peak-popup__label">trudność</span>{" "}
+              {peak.trudnosc}
+            </p>
+          ) : null}
           {peak.trudnosc_wspinaczkowa ? (
             <p className="peak-popup__row">
               <span className="peak-popup__label">wspinaczka</span>{" "}

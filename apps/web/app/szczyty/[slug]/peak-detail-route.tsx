@@ -157,12 +157,14 @@ function PeakDetail({ peak }: { peak: Peak }) {
             </dd>
           </div>
         )}
-        <div className="flex flex-col gap-1">
-          <dt className="text-[11px] uppercase tracking-[0.08em] text-ink-3">
-            trudność
-          </dt>
-          <dd className="text-ink-1">{peak.trudnosc}</dd>
-        </div>
+        {peak.trudnosc ? (
+          <div className="flex flex-col gap-1">
+            <dt className="text-[11px] uppercase tracking-[0.08em] text-ink-3">
+              trudność
+            </dt>
+            <dd className="text-ink-1">{peak.trudnosc}</dd>
+          </div>
+        ) : null}
         {peak.trudnosc_wspinaczkowa ? (
           <div className="flex flex-col gap-1">
             <dt className="text-[11px] uppercase tracking-[0.08em] text-ink-3">

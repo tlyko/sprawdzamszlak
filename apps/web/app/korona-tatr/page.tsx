@@ -103,7 +103,6 @@ export default function KoronaTatrPage() {
               peak: {
                 id,
                 nazwa: "—",
-                trudnosc: "",
               },
               bagged: false,
             }))

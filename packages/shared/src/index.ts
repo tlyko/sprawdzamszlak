@@ -43,7 +43,10 @@ export const PeakIdSchema = z
 export const PeakSchema = z.object({
   id: PeakIdSchema,
   nazwa: z.string().min(1).max(120),
-  trudnosc: z.string().min(1).max(120),
+  // Optional since the OSM-imported catalog (ADR-008 PR 5a) introduces
+  // peaks the owner hasn't curated. UI renders an em-dash placeholder
+  // when this is absent rather than special-casing every consumer.
+  trudnosc: z.string().min(1).max(120).optional(),
   trudnosc_wspinaczkowa: z.string().max(40).optional(),
   latitude: NumericString,
   longitude: NumericString,
