@@ -1,0 +1,19 @@
+# Cloudflare Workers + Static Assets routing for dynamic SPA routes.
+#
+# `not_found_handling: "single-page-application"` in wrangler.jsonc serves
+# the root /index.html on any 404 — wrong for /trasy/<slug>/ and
+# /szczyty/<slug>/, which need their per-route shell so useParams() can read
+# the slug and TripDetailRoute / PeakDetailRoute can resolve the manifest.
+#
+# Build emits the shells under apps/web/out/trasy/_/index.html and
+# apps/web/out/szczyty/_/index.html (placeholder slug from
+# generateStaticParams). These rewrites point any direct URL under those
+# prefixes at the right shell. The 200 status means rewrite (proxy), not
+# 30x redirect — the URL bar keeps the real slug.
+#
+# Order: more-specific first. `_redirects` evaluates top-to-bottom; the
+# first match wins, so we list both prefixes explicitly rather than a
+# catch-all.
+
+/trasy/*    /trasy/_/index.html    200
+/szczyty/*  /szczyty/_/index.html  200
