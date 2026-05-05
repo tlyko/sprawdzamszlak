@@ -1,0 +1,24 @@
+# Cloudflare Workers + Static Assets routing for dynamic SPA routes.
+#
+# Background: `not_found_handling: "single-page-application"` in
+# wrangler.jsonc serves the root /index.html on any 404 — wrong for
+# /trasy/<slug>/ and /szczyty/<slug>/, which need their per-route shell so
+# useParams() can read the slug and TripDetailRoute / PeakDetailRoute can
+# resolve the manifest.
+#
+# Cloudflare Workers Assets validates _redirects at deploy time and
+# rejects destinations that would normalise back into the source pattern
+# (error 10021 "infinite loop"). So pointing at /trasy/_/index.html does
+# NOT work — Cloudflare strips /index.html, sees /trasy/_/ which matches
+# /trasy/* again, refuses the deploy.
+#
+# Fix: postbuild script `apps/web/scripts/copy-spa-shells.mjs` copies the
+# Next-emitted placeholder shells to /_shells/trasy.html and
+# /_shells/szczyty.html. Those paths sit outside any redirect source so
+# the validator is happy. The HTML is identical — JS bundles are loaded
+# by absolute /_next/* paths, so it doesn't matter which directory served
+# the file. useParams() reads from window.location, which Cloudflare
+# leaves untouched on a 200 rewrite.
+
+/trasy/*    /_shells/trasy.html    200
+/szczyty/*  /_shells/szczyty.html  200
