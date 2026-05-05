@@ -62,6 +62,34 @@ resource "aws_s3_bucket_versioning" "geojson_bucket_versioning" {
   }
 }
 
+# Versioning above keeps every overwrite forever, which would let storage
+# cost grow without bound (each Strava re-import rewrites the GeoJSON, the
+# old version becomes a noncurrent object that nobody queries). 30 days is
+# wide enough to recover from "I just nuked the wrong row" without paying
+# for years-old artefacts. Audyt 2026-05-05 §5.4.
+resource "aws_s3_bucket_lifecycle_configuration" "geojson_bucket_lifecycle" {
+  bucket = aws_s3_bucket.geojson_bucket.id
+
+  rule {
+    id     = "expire-noncurrent-versions"
+    status = "Enabled"
+
+    filter {}
+
+    noncurrent_version_expiration {
+      noncurrent_days = 30
+    }
+
+    # Tidy up dangling multipart uploads so a failed PutObject doesn't
+    # accumulate billing tail.
+    abort_incomplete_multipart_upload {
+      days_after_initiation = 7
+    }
+  }
+
+  depends_on = [aws_s3_bucket_versioning.geojson_bucket_versioning]
+}
+
 # BucketOwnerEnforced disables ACLs entirely; all access is via bucket
 # policy + IAM. Recommended for new buckets since 2023.
 resource "aws_s3_bucket_ownership_controls" "geojson_bucket_ownership" {
