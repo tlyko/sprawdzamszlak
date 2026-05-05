@@ -1,4 +1,4 @@
-// Seed script: writes peaks/routes from seeds/*.json into DynamoDB.
+// Seed script: writes peaks from seeds/peaks.json into DynamoDB.
 //
 // This replaces the previous Terraform anti-pattern of managing
 // `aws_dynamodb_table_item` resources from `locals.tf`. Now data is in JSON
@@ -10,6 +10,11 @@
 //   AWS_PROFILE=sprawdzamszlak corepack pnpm -F api seed
 //
 // Idempotent — uses PutItem (overwrite by id), so re-running is safe.
+//
+// Routes are NOT seeded any more. The routes table is owned by the Strava
+// fetcher (PR #29 / #44 bulk reseed) and any manual seed file would
+// silently overwrite Strava-imported entries. The historical seed JSON
+// was removed in audyt 2026-05-05 §3.1.
 
 import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
@@ -20,11 +25,10 @@ import {
   BatchWriteCommand,
   type BatchWriteCommandInput,
 } from '@aws-sdk/lib-dynamodb';
-import { PeakSchema, RouteSchema, type Peak, type Route } from '@sprawdzamszlak/shared';
+import { PeakSchema, type Peak } from '@sprawdzamszlak/shared';
 
 const REGION = process.env.AWS_REGION ?? 'eu-west-1';
 const PEAKS_TABLE = process.env.DYNAMODB_TABLE_NAME ?? 'sprawdzamszlak-data';
-const ROUTES_TABLE = process.env.DYNAMODB_ROUTES_TABLE_NAME ?? 'sprawdzamszlak-routes';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const seedsDir = resolve(here, '../seeds');
@@ -75,16 +79,8 @@ async function main() {
   const peaks: Peak[] = rawPeaks.map((row) => PeakSchema.parse(row));
   console.log(`Validated ${peaks.length} peaks`);
 
-  const rawRoutes = await loadJson('routes.json');
-  const routes: Route[] = rawRoutes.map((row) => RouteSchema.parse(row));
-  console.log(`Validated ${routes.length} routes`);
-
   console.log(`Writing peaks → ${PEAKS_TABLE}…`);
   await batchPut(PEAKS_TABLE, peaks);
-  console.log('  done');
-
-  console.log(`Writing routes → ${ROUTES_TABLE}…`);
-  await batchPut(ROUTES_TABLE, routes);
   console.log('  done');
 
   console.log('Seed complete.');
