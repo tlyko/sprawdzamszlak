@@ -174,3 +174,74 @@ export const StravaActivitySchema = z.object({
 });
 
 export type StravaActivity = z.infer<typeof StravaActivitySchema>;
+
+// ---------------------------------------------------------------------------
+// Plan — a planned trip to a Tatra peak (ADR-008).
+// ---------------------------------------------------------------------------
+//
+// "Kronika != log" — plans capture intent ahead of time and become part of
+// the chronicle once status flips to 'done' (with optional strava_id link
+// to the actual route).
+//
+// Shared between apps/api (DDB persistence + CRUD) and apps/web (UI render
+// + form payload). The wire shape on POST/PATCH uses the *Input schemas
+// (no id/timestamps); persisted shape uses the full PlanSchema.
+
+export const PlanIdSchema = z
+  .string()
+  .uuid('plan id must be a uuid v4');
+
+export const PlanStatusSchema = z.enum(['planned', 'done', 'skipped']);
+export type PlanStatus = z.infer<typeof PlanStatusSchema>;
+
+// Plans link to a route via "strava-<id>" or any future native route id.
+// Same allowlist as Route.id (PeakIdSchema reused).
+export const PlanStravaLinkSchema = z
+  .string()
+  .regex(/^[a-z0-9_-]{1,64}$/, 'plan strava_id must match route id pattern');
+
+const TARGET_YEAR_MIN = 2020;
+const TARGET_YEAR_MAX = 2050;
+
+export const PlanSchema = z.object({
+  id: PlanIdSchema,
+  peak_slug: PeakIdSchema,
+  target_year: z
+    .number()
+    .int()
+    .min(TARGET_YEAR_MIN)
+    .max(TARGET_YEAR_MAX),
+  target_month: z.number().int().min(1).max(12).optional(),
+  status: PlanStatusSchema,
+  route_idea: z.string().max(500).optional(),
+  notes: z.string().max(4000).optional(),
+  strava_id: PlanStravaLinkSchema.optional(),
+  created_at: z.number().int().positive(),
+  updated_at: z.number().int().positive(),
+});
+export type Plan = z.infer<typeof PlanSchema>;
+
+// POST /admin/plans payload — server fills id/created_at/updated_at and
+// defaults status to 'planned'.
+export const PlanCreateInputSchema = z.object({
+  peak_slug: PeakIdSchema,
+  target_year: z
+    .number()
+    .int()
+    .min(TARGET_YEAR_MIN)
+    .max(TARGET_YEAR_MAX),
+  target_month: z.number().int().min(1).max(12).optional(),
+  status: PlanStatusSchema.optional(),
+  route_idea: z.string().max(500).optional(),
+  notes: z.string().max(4000).optional(),
+  strava_id: PlanStravaLinkSchema.optional(),
+});
+export type PlanCreateInput = z.infer<typeof PlanCreateInputSchema>;
+
+// PATCH /admin/plans/{id} payload — every field optional, but at least
+// one must be present (zod refinement). Server stamps updated_at.
+export const PlanUpdateInputSchema = PlanCreateInputSchema.partial().refine(
+  (obj) => Object.keys(obj).length > 0,
+  { message: 'at least one field must be provided' },
+);
+export type PlanUpdateInput = z.infer<typeof PlanUpdateInputSchema>;

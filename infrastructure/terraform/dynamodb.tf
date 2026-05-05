@@ -115,3 +115,29 @@ resource "aws_dynamodb_table" "strava_events_table" {
 # `aws_dynamodb_table_item` resources removed in W2 (ADR-001).
 # Data is now seeded via `corepack pnpm -F api seed`, sourced from
 # apps/api/seeds/peaks.json and apps/api/seeds/routes.json.
+
+# ADR-008. Owner-curated plans for the season; written by the /admin/plans
+# CRUD endpoints behind CF Access auth.
+resource "aws_dynamodb_table" "plans_table" {
+  name         = local.plans_table.name
+  billing_mode = local.plans_table.billing_mode
+  hash_key     = local.plans_table.hash_key
+
+  dynamic "attribute" {
+    for_each = local.plans_table.attributes
+    content {
+      name = attribute.value.name
+      type = attribute.value.type
+    }
+  }
+
+  deletion_protection_enabled = true
+
+  server_side_encryption {
+    enabled = true
+  }
+
+  point_in_time_recovery {
+    enabled = true
+  }
+}
