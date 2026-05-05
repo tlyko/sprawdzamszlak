@@ -1,24 +1,39 @@
-# Cloudflare Access setup — `/admin/*` endpoints
+# Cloudflare Access setup — `/api/admin/*` + `/plany/admin/*`
 
-Setup ADR-008. Step-by-step what owner needs to do **once**, end-to-end. Pełna ścieżka rozłożona na trzy fazy: PR 2 (kod auth gate), PR 3 (custom domain), CF Access (manual w dashboardzie).
+Setup runbook for ADR-008. Krok po kroku co owner robi **raz** end-to-end.
 
-> **Stan po PR 2 (ten):** Lambda umie weryfikować JWT od CF Access, ale żaden CF Access app jeszcze nie istnieje. Wszystkie `/admin/*` requesty zwracają 401 "missing JWT" (po populated SSM) lub 503 "auth not configured" (przed). To OK — gate jest zamknięty bez CF, dokładnie tak ma być.
+## Architektura (po PR 5b restructure)
 
-## Faza A — po merge PR 2: populated SSM placeholders
+```
+Browser
+  └─ sprawdzamszlak.pl/...
+       └─ Cloudflare edge
+            ├─ /api/admin/*    ┐ CF Access intercepts here
+            ├─ /plany/admin/*  ┘ (one app, paths-list policy)
+            │
+            └─ Worker (apps/web/worker/index.ts)
+                 ├─ /api/* → fetch() → AWS HTTP API → Lambda
+                 └─ else   → env.ASSETS.fetch(req)  → Next static export
+```
 
-Bez tego /admin/ping zwraca 503 "auth not configured" — wciąż OK z punktu bezpieczeństwa, ale nie odróżnisz "gate works" od "gate down".
+Wszystko żyje na `sprawdzamszlak.pl`. **Bez `api.` subdomeny, bez cross-origin auth, bez kombinowania z parent-domain cookie**. Jedna CF Access apka pokrywa obie ścieżki admin.
+
+> **Stan po PR 5a (Lambda JWT verify) + PR 5b (Worker proxy):** Lambda umie weryfikować JWT, Worker proxyuje, ale CF Access apka jeszcze nie istnieje. Wszystkie `/api/admin/*` requesty zwracają 401 "missing JWT" (po populated SSM) lub 503 "auth not configured" (przed). To OK — gate zamknięty.
+
+---
+
+## Faza A — populated SSM placeholders
+
+Bez tego /api/admin/ping zwraca 503 "auth not configured" — nie odróżnisz "gate works" od "gate down".
 
 ```bash
-# Owner email (allowlist for /admin/*).
 aws ssm put-parameter \
   --region eu-west-1 \
   --name /sprawdzamszlak/admin/owner_email \
   --type String \
   --value 'tlyko94@gmail.com'
 
-# CF team domain — set during Faza C, but a placeholder is fine for now.
-# (Lambda will start returning 401 once these are real and a request
-# without JWT lands.)
+# CF team domain — pełna wartość po Fazie B; placeholder OK na start.
 aws ssm put-parameter \
   --region eu-west-1 \
   --name /sprawdzamszlak/cf-access/team_domain \
@@ -32,144 +47,94 @@ aws ssm put-parameter \
   --value 'placeholder-aud-value-replace-me-after-cf-app-created-min32chars'
 ```
 
-Smoke test (na legacy URL, bo custom domain jeszcze nie wdrożona):
+Smoke test:
 
 ```bash
-curl -sI https://akoz890bg6.execute-api.eu-west-1.amazonaws.com/prod/admin/ping
-# HTTP/2 401
-# < {"message":"unauthorized"}
+curl -sI https://sprawdzamszlak.pl/api/admin/ping
+# HTTP/2 401   ← gate trzyma, JWT verify rzuca UnauthorizedError
 ```
 
-Bez Authorization header — 401. ✅ Gate działa.
+---
 
-## Faza B — PR 3: custom domain `api.sprawdzamszlak.pl`
+## Faza B — CF Access app
 
-PR 3 wprowadza:
+W CF Zero Trust dashboard:
 
-- ACM cert dla `api.sprawdzamszlak.pl` (DNS validation — owner musi dodać CNAME).
-- `aws_acm_certificate_validation` z 30-min timeoutem — apply zatrzymuje się tu i czeka aż CNAME się propaguje.
-- API GW custom domain + mapping prod stage → `/`.
-- TF outputs: `api_cert_validation_records`, `api_custom_domain_target`, `api_custom_domain_url`.
-
-### Krok po kroku po mergu PR 3
-
-1. **GHA odpala terraform apply.** Cert resource powstaje (PENDING_VALIDATION), potem `aws_acm_certificate_validation` zaczyna pollować ACM. Apply staje na tym kroku — to OK, czeka na CNAME.
-
-2. **Owner: zdobądź validation records.** Equivalent do TF outputu (TF tu jeszcze nie pisze outputów — apply nie skończony):
-
-   ```bash
-   ARN=$(aws acm list-certificates --region eu-west-1 \
-     --query 'CertificateSummaryList[?DomainName==`api.sprawdzamszlak.pl`].CertificateArn' \
-     --output text)
-   aws acm describe-certificate --region eu-west-1 --certificate-arn "$ARN" \
-     --query 'Certificate.DomainValidationOptions[0].ResourceRecord'
-   ```
-
-   Wynik:
-
-   ```json
-   {
-     "Name":  "_xyz123.api.sprawdzamszlak.pl.",
-     "Type":  "CNAME",
-     "Value": "_abc456.xxxxxx.acm-validations.aws."
-   }
-   ```
-
-3. **CF dashboard → DNS → Add record (DNS only, gray cloud, NOT proxied):**
-   - Type: `CNAME`
-   - Name: `_xyz123.api` (CF strippuje sufiks zone'a — wpisujesz tylko prefix)
-   - Target: `_abc456.xxxxxx.acm-validations.aws.`
-   - Proxy status: **DNS only** (gray cloud).
-
-4. ACM auto-pollule co ~minutę. Po 1-3 min `terraform apply` rusza dalej (nie musisz nic robić — TF poll co kilkadziesiąt sekund).
-
-5. **Jeśli przegapisz 30-min okno** — apply kończy się timeoutem. Re-run workflow `terraform.yml` przez `workflow_dispatch`. Drugi apply: cert już ISSUED, validation resource przechodzi natychmiast, reszta zasobów dokończona.
-
-6. Apply kończy się sukcesem. **Czytaj outputy:**
-
-   ```bash
-   cd infrastructure/terraform
-   terraform output api_custom_domain_target  # np. d-abc123.execute-api.eu-west-1.amazonaws.com
-   terraform output api_custom_domain_url     # https://api.sprawdzamszlak.pl
-   ```
-
-7. **CF dashboard → DNS → Add record (proxied, orange cloud):**
-   - Type: `CNAME`
-   - Name: `api`
-   - Target: wartość z `api_custom_domain_target` (bez końcowej kropki w UI CF).
-   - Proxy status: **Proxied** (orange cloud) — bez tego CF Access nie może osadzić auth gate.
-
-## Faza C — CF Access app (manual w dashboardzie)
-
-1. CF dashboard → **Zero Trust** (free plan, signup once jeśli brak).
-2. **Settings → Custom Pages → Application Cookie Domain** → `sprawdzamszlak.pl`. To wymusza, żeby cookie `CF_Authorization` był scoped na parent domain — pozwala na SSO między `/plany/admin/*` (frontend) i `/admin/*` (API).
-3. **Access → Applications → Add an application → Self-hosted**.
-4. Konfiguracja aplikacji **#1: API admin gate**:
-   - Name: `sprawdzamszlak API admin`
-   - Application domain: `api.sprawdzamszlak.pl`
-   - Path: `admin/*`
-   - Session duration: 30 dni (lub krótsza, do wyboru)
-   - Cookie settings → Application Cookie Domain: `sprawdzamszlak.pl`
-5. Policy:
+1. **Access → Applications → Add an application → Self-hosted and private**.
+2. Application form:
+   - **Name:** `sprawdzamszlak admin`
+   - **Domain / Destination:** `sprawdzamszlak.pl`
+   - **Path:** zostaw puste — paths zdefiniujemy w policy / dodajemy dwa wpisy do destinations:
+     - `sprawdzamszlak.pl/api/admin/*`
+     - `sprawdzamszlak.pl/plany/admin/*`
+   - **Session duration:** `24h` lub `30 days` — do woli.
+3. **Policy:**
    - Name: `Owner only`
    - Action: `Allow`
-   - Selector: `Email` → `tlyko94@gmail.com`
-6. Identity providers: domyślnie One-Time Pin (email magic link) — wystarczy. Można dorzucić Google jako identity-provider jeśli wolisz one-click.
-7. Save → CF wygeneruje **AUD tag** (widoczny w "Overview" tab apki). Zapisz, użyjesz w pkt. 9.
-8. Powtórz dla aplikacji **#2: frontend admin gate**:
-   - Application domain: `sprawdzamszlak.pl`
-   - Path: `plany/admin/*`
-   - Reszta — taka sama policy (Owner only).
-   - **Cookie domain ten sam** (`sprawdzamszlak.pl`) — żeby SSO działał między obiema apkami.
-9. Wgraj prawdziwe wartości do SSM:
+   - Include selector: **Emails** → `tlyko94@gmail.com`
+4. **Identity providers:** zostaw default (One-Time Pin / email magic link).
+5. **Save**.
+
+Po zapisaniu otwórz apkę → zakładka **Overview** lub w UI "Additional settings" → **AUD tag**. Skopiuj długi hex.
+
+> Jeśli wizard pozwala tylko na jedną domenę + path, utwórz dwie aplikacje (jedna na `api/admin/*`, druga na `plany/admin/*`) z tą samą polityką. CF Access SSO obsłuży przejście między nimi w tym samym browser session na sprawdzamszlak.pl — bez parent-domain cookie hack, bo obie są na tym samym hostname.
+
+---
+
+## Faza C — wgraj prawdziwe wartości do SSM
 
 ```bash
-# team_domain — Z headers: CF dashboard → Zero Trust → Settings → General →
-# "Team domain". Format: <team>.cloudflareaccess.com (np. tomek.cloudflareaccess.com).
+# Twój team domain — Settings → General → "Team domain" w CF Zero Trust.
+# Format: <team>.cloudflareaccess.com (np. sprawdzamszlak.cloudflareaccess.com).
 aws ssm put-parameter \
   --region eu-west-1 \
   --overwrite \
   --name /sprawdzamszlak/cf-access/team_domain \
   --type String \
-  --value '<team>.cloudflareaccess.com'
+  --value 'sprawdzamszlak.cloudflareaccess.com'
 
-# aud — z aplikacji #1 (API admin) → tab "Overview" → "Application Audience (AUD) Tag".
-# Long hex string. Application #1 i #2 mają RÓŻNE AUD-y; tu wgrywamy AUD apki API.
+# AUD — z apki "sprawdzamszlak admin" → Overview → "Application Audience (AUD) Tag".
 aws ssm put-parameter \
   --region eu-west-1 \
   --overwrite \
   --name /sprawdzamszlak/cf-access/aud \
   --type String \
-  --value '<aud-from-app-1>'
+  --value '<aud-tag-z-app-overview>'
 ```
 
-10. Smoke test pełnego flow:
+Lambda cache config czyści się przy cold starcie — w prod ~5 min spokoju potrzebne, albo `aws lambda update-function-configuration` żeby wymusić cold (zmienić cokolwiek w env).
+
+---
+
+## Smoke test pełnego flow
 
 ```bash
-# Bez auth — 401
-curl -sI https://api.sprawdzamszlak.pl/admin/ping
-# HTTP/2 401
+# Anonim — 401, gate trzyma
+curl -sI https://sprawdzamszlak.pl/api/admin/ping
+# HTTP/2 401  {"message":"unauthorized"}
 
 # W przeglądarce:
-# Otwórz https://sprawdzamszlak.pl/plany/admin/  (jak będzie po PR 4 gotowe)
-# CF Access przekieruje na login → wpisz email → kod z maila → wracasz zalogowany.
-# Otwórz https://api.sprawdzamszlak.pl/admin/ping w tej samej karcie.
-# Cookie jest wspólne (cookie domain .sprawdzamszlak.pl), więc → 200 z {"ok":true,"email":"..."}.
+# Otwórz https://sprawdzamszlak.pl/plany/admin/  (po PR 5c)
+# albo bezpośrednio https://sprawdzamszlak.pl/api/admin/ping
+# CF Access redirect → magic link na maila → kod → wracasz zalogowany
+# Druga karta z curl/fetch z tej samej sesji → 200 + {"ok":true,"email":"..."}
 ```
 
-Teraz `/admin/*` mają prawdziwy auth gate.
+---
 
 ## Wycofanie / rotacja
 
-- **Token compromise nie istnieje** — nie ma shared secret. Wystarczy w CF dashboard wyłączyć aplikację albo zmienić policy na puste.
-- **Email change** — `aws ssm put-parameter --overwrite --name /sprawdzamszlak/admin/owner_email ...`. Cold start lambdy (~5 min) → cache wyczyszczony.
-- **Logout** — otwórz `https://<team>.cloudflareaccess.com/cdn-cgi/access/logout` w przeglądarce. Czyści cookie wszystkich apek pod tym team domain.
+- **Sesja compromise** — w CF dashboard `Revoke session` na konkretnym użytkowniku, lub `Revoke` na całej apce.
+- **Email change** — `aws ssm put-parameter --overwrite --name /sprawdzamszlak/admin/owner_email ...`. Lambda cold start (~5 min) lub force update funkcji.
+- **Logout** — `https://<team>.cloudflareaccess.com/cdn-cgi/access/logout` w przeglądarce.
+
+---
 
 ## Co jeśli CF jest wyłączone (incident, eksperymentowanie)
 
-Lambda re-weryfikuje JWT lokalnie. Jeśli requestor:
-- Nie ma `Cf-Access-Jwt-Assertion` → 401 `unauthorized`.
-- Ma JWT ale issuer/aud/sig się nie zgadzają → 401 `unauthorized`.
-- Ma poprawny JWT z innego CF teamu → 401 (issuer mismatch).
+Lambda re-weryfikuje JWT lokalnie (defense-in-depth, ADR-008 D4):
+- Brak `Cf-Access-Jwt-Assertion` → 401.
+- Bad signature / wrong aud / wrong issuer → 401.
+- Poprawny JWT z innego CF teamu → 401 (issuer mismatch).
 
-Innymi słowy: nawet bez CF przed Lambdą, `/admin/*` nie staje się otwarty. To jest D4 z ADR-008.
+Tzn. nawet bez CF przed Lambdą, `/api/admin/*` nie staje się otwarty.

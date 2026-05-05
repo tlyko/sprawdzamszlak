@@ -27,10 +27,7 @@ import {
 } from "@/components/logbook/extract-trip-meta";
 import { useOgMeta } from "@/components/logbook/og-meta";
 import type { Trail, TrailGeoJson } from "@/components/map/types";
-
-const API_URL_BASE =
-  process.env.NEXT_PUBLIC_API_URL ??
-  "https://akoz890bg6.execute-api.eu-west-1.amazonaws.com/prod";
+import { API_BASE as API_URL_BASE } from "@/lib/api-base";
 
 type LoadState =
   | { kind: "loading" }

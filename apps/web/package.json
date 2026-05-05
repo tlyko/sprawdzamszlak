@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build && node ./scripts/copy-spa-shells.mjs",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "typecheck:worker": "tsc -p tsconfig.worker.json --noEmit"
   },
   "dependencies": {
     "leaflet": "^1.9.4",
@@ -16,6 +17,7 @@
     "react-leaflet": "^5.0.0"
   },
   "devDependencies": {
+    "@cloudflare/workers-types": "^4.20251005.0",
     "@tailwindcss/postcss": "^4",
     "@types/leaflet": "^1.9.21",
     "@types/node": "^20",

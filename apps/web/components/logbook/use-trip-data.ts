@@ -19,14 +19,10 @@
 
 import { useEffect, useState } from "react";
 import type { Peak, Trail, TrailGeoJson } from "@/components/map/types";
+import { API_BASE } from "@/lib/api-base";
 import { applyTypeOverrides } from "./type-overrides";
 
-// Pulled from NEXT_PUBLIC_API_URL when set; the prod fallback matches the
-// previous MapShell hard-coded value so removing the env var doesn't break
-// the live site.
-const API_URL_BASE =
-  process.env.NEXT_PUBLIC_API_URL ??
-  "https://akoz890bg6.execute-api.eu-west-1.amazonaws.com/prod";
+const API_URL_BASE = API_BASE;
 
 export interface TripData {
   peaks: Peak[];

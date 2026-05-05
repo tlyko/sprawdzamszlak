@@ -1,0 +1,17 @@
+{
+  // Separate tsconfig for the Cloudflare Worker entry (apps/web/worker/).
+  //
+  // Why split: @cloudflare/workers-types provides global Request/Response/
+  // fetch types that conflict with `lib: ["dom"]` if both are in scope for
+  // the same file. The Next.js app needs DOM; the Worker needs Workers
+  // types. Two tsconfigs, no conflict.
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "lib": ["esnext"],
+    "types": ["@cloudflare/workers-types"],
+    "noEmit": true,
+    "module": "esnext",
+    "moduleResolution": "bundler"
+  },
+  "include": ["worker/**/*.ts"]
+}
