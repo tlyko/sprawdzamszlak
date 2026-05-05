@@ -21,6 +21,7 @@ type NavItem = {
 
 const NAV: ReadonlyArray<NavItem> = [
   { href: "/", label: "mapa" },
+  { href: "/plany/", label: "plany" },
   { href: "/korona-tatr", label: "WKT" },
   { href: "/o-projekcie", label: "o projekcie" },
   { href: "/strava", label: "strava" },
