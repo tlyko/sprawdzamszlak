@@ -2,6 +2,12 @@ import type { Metadata } from "next";
 import { Fraunces, Geist, Geist_Mono } from "next/font/google";
 import { Header } from "@/components/chrome/header";
 import { Footer } from "@/components/chrome/footer";
+// Order matters: leaflet's defaults set `.leaflet-popup-content-wrapper`
+// to white background + #333 text, which on dark mode overrides our
+// `--surface-1` rules in globals.css and produces an unreadable popup
+// (white-on-cream-white). Importing leaflet.css first ensures globals.css
+// follows it in the cascade and wins same-specificity overrides.
+import "leaflet/dist/leaflet.css";
 import "./globals.css";
 
 const geistSans = Geist({

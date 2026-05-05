@@ -21,7 +21,10 @@ import { useEffect, useState } from "react";
 import { MapContainer, useMap, useMapEvents } from "react-leaflet";
 import L from "leaflet";
 import type { GeoJsonObject } from "geojson";
-import "leaflet/dist/leaflet.css";
+// leaflet.css is imported in app/layout.tsx (above globals.css) so the
+// cascade order lets globals.css override leaflet's defaults — keeping
+// the import here would re-add it after globals.css and re-introduce the
+// dark-mode popup readability bug.
 
 import { MapTileLayer } from "./tile-layer";
 import { PeakMarkers } from "./peak-markers";
