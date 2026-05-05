@@ -287,6 +287,37 @@ data "aws_iam_policy_document" "gha_terraform_perms" {
     actions   = ["ce:*", "budgets:*"]
     resources = ["*"]
   }
+
+  # ACM — DNS-validated certs for the API custom domain (ADR-008 PR 3).
+  # RequestCertificate / ListCertificates are unscoped service-level calls
+  # (cert ARN doesn't exist yet at request time, list is by definition
+  # account-wide). Mutations + reads bind to the eu-west-1 cert ARN
+  # pattern — tightest scope ACM supports.
+  statement {
+    sid    = "AcmRequestAndList"
+    effect = "Allow"
+    actions = [
+      "acm:RequestCertificate",
+      "acm:ListCertificates",
+    ]
+    resources = ["*"]
+  }
+
+  statement {
+    sid    = "AcmCertOps"
+    effect = "Allow"
+    actions = [
+      "acm:DescribeCertificate",
+      "acm:GetCertificate",
+      "acm:DeleteCertificate",
+      "acm:AddTagsToCertificate",
+      "acm:RemoveTagsFromCertificate",
+      "acm:ListTagsForCertificate",
+      "acm:UpdateCertificateOptions",
+      "acm:RenewCertificate",
+    ]
+    resources = ["arn:aws:acm:eu-west-1:214598715232:certificate/*"]
+  }
 }
 
 resource "aws_iam_role_policy" "gha_terraform_perms" {
