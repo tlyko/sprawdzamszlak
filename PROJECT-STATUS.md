@@ -1,8 +1,24 @@
-# Project status snapshot — 2026-05-05 morning
+# Project status snapshot — 2026-05-05 night
 
 Living document — overwritten when significant state changes. Read this first after `/clear`.
 
-> **🟢 START HERE if planning the day:** [`docs/audit-2026-05-05.md`](docs/audit-2026-05-05.md) — pełny audyt nocny z 2026-05-04→05. Zawiera: 1 critical bug (broken `/trasy/[slug]/`+`/szczyty/[slug]/` w prod), top 5 security, top 10 z 43 code findings, 8 UX live observations, 10 strategic feature proposals, 4-sprint roadmap. Sprint 1 (~3h) jest gotowy do startu i ratuje produkcję.
+> **🟢 START HERE — manual setup pending:** ADR-008 (planner) shipped end-to-end in code (PRs #64–#76 all merged), but the live `/plany/admin/` write flow is gated by **one-time owner action** that hasn't happened yet:
+>
+> 1. **CF Access app** — Zero Trust → Add → **Self-hosted and private**. Destinations: `sprawdzamszlak.pl/api/admin/*` AND `sprawdzamszlak.pl/plany/admin/*`. Policy: Allow, Email = `tlyko94@gmail.com`. Full steps in [`infrastructure/scripts/cf-access-setup.md`](infrastructure/scripts/cf-access-setup.md) Faza B.
+> 2. **SSM populate** with the values from above:
+>    ```bash
+>    aws ssm put-parameter --region eu-west-1 --overwrite \
+>      --name /sprawdzamszlak/cf-access/team_domain --type String \
+>      --value 'sprawdzamszlak.cloudflareaccess.com'
+>    aws ssm put-parameter --region eu-west-1 --overwrite \
+>      --name /sprawdzamszlak/cf-access/aud --type String \
+>      --value '<aud-z-overview-apki>'
+>    ```
+> 3. **CF DNS cleanup** — delete two leftover records from the dropped api.sprawdzamszlak.pl arch: `api → ...` (proxied) and `_xxx.api → ...acm-validations.aws.` (gray cloud).
+>
+> After (1)+(2) Lambda cold start (~5 min) refreshes config; `/plany/admin/` then accepts magic-link login + checkbox toggles persist.
+>
+> The pre-ADR-008 audit ([`docs/audit-2026-05-05.md`](docs/audit-2026-05-05.md)) — Sprint 1 from that doc was fully shipped today; §5.1 (notes), §5.6 (observability), §5.10 (smoke cron) and rest still open as future work.
 
 ## Where we are
 
@@ -30,25 +46,27 @@ Living document — overwritten when significant state changes. Read this first 
 | #49 Strava photos w trip detail | ✅ shipped (PR #58, awaits live verification — replay activity z fotkami) |
 | Bonus: peak height obok nazwy w row | ✅ shipped (PR #57) |
 | Bonus: type-override map (Hike→official dla 6 tras) | ✅ shipped (część PR #55) |
+| **Sprint 1 z audytu 2026-05-05 (6 hot fixes)** | ✅ shipped (PRs #60–#63) |
+| **ADR-008 — planner (`/plany/`) z auth via Cloudflare Access** | ✅ code shipped (#64–#76); live waits on owner CF Access app + SSM populate |
+| Peaks catalog: 24 → ~320 (OSM+Wiki import) | ✅ shipped (PR #70 + owner ran `seed`) |
+| API restructure: drop api subdomain, route via Worker proxy | ✅ shipped (PR #73) |
 
 ## Open PRs
 
-`gh pr list` — empty as of 2026-05-05 morning. Ostatnia merga: `feat/strava-photos` 2026-05-05 noc.
+`gh pr list` — empty as of 2026-05-05 night. Ostatnia merga: `fix/peak-detail-slug-and-tier` (#76).
 
 ## Active feature backlog
 
-**Backlog #45-#49 zamknięty.** Następne zadania zob. **`docs/audit-2026-05-05.md` §6 (sprint roadmap)**.
+**ADR-008 track zamknięty w kodzie.** Owner manual setup pending — zob. "START HERE" wyżej.
 
-Sprint 1 (TEN TYDZIEŃ, ~3h) — hot fixes które ratują produkcję:
+Po skonfigurowaniu CF Access + SSM, kolejne źródła zadań:
 
-1. ⚡ **Fix `/trasy/[slug]/` + `/szczyty/[slug]/` w prod** — dodać `apps/web/public/_redirects` z dwoma regułami. **Cloudflare SPA fallback dziś serwuje root index.html zamiast per-route shella.** Skutek: PR #56 share-link button produkuje nie-działające URL-e. 5-10 min. Zob. audyt §1.
-2. ⚡ **Webhook subscription_id + owner_id check** — `apps/api/src/strava/webhook.ts` — eliminuje DoS surface (Strava nie wysyła HMAC). 30 min. Zob. §2.1.
-3. ⚡ **Photo fetch hardening** w `fetcher.ts` — host-allowlist, AbortSignal.timeout(5000), content-length cap. 1h. Zob. §2.2.
-4. ⚡ **`apps/api/seeds/routes.json` footgun fix + `TF_VAR_admin_pass` cleanup**. 30 min. Zob. §3.1.
-5. ⚡ **DDB PITR + S3 versioning** w Terraform — backup polisa za $0.20/m. 1h. Zob. §5.4.
-6. ⚡ **DDB events TTL 7d → 30d**. 5 min.
-
-Sprint 2-4 w audycie §6.
+- **`docs/audit-2026-05-05.md` §6 (sprint roadmap)** — Sprint 1 zrobiony. Sprint 2 (quality polish: tests, observability, mapa polish), Sprint 3 (kronika != log: §5.1 notatki, §5.2 sezon/warunki, §5.3 partnerzy, §5.8 WKT jako narracja), Sprint 4 (WIG tile layer, RSS export).
+- **Manual cleanup** still pending:
+  - 2 leftover CF DNS records (`api → ...` proxied + `_xxx.api → ...acm-validations.aws.` gray cloud) from the dropped api subdomain
+  - 2 mystery `strava-*` rows in DDB (`strava-11550083200`, `strava-12161135830`)
+  - Stadia free trial expires 2026-05-18 — payment method needed
+  - TFC workspace + token rotation (post-ADR-005 backup safety net)
 
 `gh issue list --repo tlyko/sprawdzamszlak --state open` — currently empty.
 
@@ -115,6 +133,7 @@ Strava activity recorded → webhook → fetcher → S3 + DDB → mapa, end-to-e
 - **ADR-004** GPX parser plan (currently unused — Strava streams skip the GPX layer).
 - **ADR-005** GHA + S3+DDB + AWS OIDC.
 - **ADR-007** Strava OAuth start page on apps/web + two API routes; web layer never touches tokens.
+- **ADR-008** Plans feature with Cloudflare Access auth. Same-origin via Worker proxy (`/api/*`). One CF Access app on `sprawdzamszlak.pl` covers `/api/admin/*` and `/plany/admin/*`. Lambda re-verifies CF JWT (defense-in-depth).
 
 ## SSM parameters in use
 
@@ -125,6 +144,9 @@ Strava activity recorded → webhook → fetcher → S3 + DDB → mapa, end-to-e
 | `/sprawdzamszlak/strava/verify_token` | SecureString | strava:subscribe CLI | Lambda (webhook handshake) |
 | `/sprawdzamszlak/strava/tokens` | SecureString | Lambda (oauth callback + fetcher refresh) | Lambda (fetcher) |
 | `/sprawdzamszlak/strava/subscription_id` | String | strava:subscribe CLI | — (informational) |
+| `/sprawdzamszlak/cf-access/team_domain` | String | owner (CLI) | Lambda (`/admin/*` JWT verify) |
+| `/sprawdzamszlak/cf-access/aud` | String | owner (CLI) | Lambda (`/admin/*` JWT verify) |
+| `/sprawdzamszlak/admin/owner_email` | String | owner (CLI) | Lambda (`/admin/*` email allowlist) |
 
 ## Operational items still open
 
@@ -142,8 +164,11 @@ Strava activity recorded → webhook → fetcher → S3 + DDB → mapa, end-to-e
 ## Live URLs
 
 - Frontend: `https://sprawdzamszlak.pl` (custom domain) + `https://sprawdzamszlak.tlyko94.workers.dev` (preview)
-- API: `https://akoz890bg6.execute-api.eu-west-1.amazonaws.com/prod`
-- Routes: `GET /` (peaks), `GET /routes` (with presigned S3 URLs), `GET /strava/oauth/start`, `GET /strava/oauth/callback`, `GET /strava/webhook`, `POST /strava/webhook`
+- **API** — same-origin via Worker proxy at `https://sprawdzamszlak.pl/api/*` (ADR-008 PR 5b). Frontend never hits the legacy hostname directly.
+- API origin (legacy, used by Worker as upstream + by Strava OAuth/webhook): `https://akoz890bg6.execute-api.eu-west-1.amazonaws.com/prod`
+- Public routes: `GET /api/` (peaks), `GET /api/routes` (with presigned S3 URLs), `GET /api/plans` (planner), `GET /api/strava/oauth/start`, `GET /api/strava/oauth/callback`, `GET/POST /api/strava/webhook`
+- Admin routes (CF Access gated): `GET /api/admin/ping`, `POST /api/admin/plans`, `PATCH /api/admin/plans/{id}`, `DELETE /api/admin/plans/{id}`
+- Frontend pages: `/`, `/plany/`, `/plany/admin/` (CF Access), `/korona-tatr`, `/statystyki`, `/o-projekcie`, `/strava`, `/strava/connected`, `/szczyty/[slug]/`, `/trasy/[slug]/`
 
 ## Useful CLI
 
