@@ -85,10 +85,6 @@ jobs:
 
       - name: Terraform plan
         id: plan
-        env:
-          # Falls back to placeholder for plan-only validation if the secret
-          # isn't set yet. Real apply will fail fast if the secret is empty.
-          TF_VAR_admin_pass: ${{ secrets.TF_VAR_ADMIN_PASS || 'unset-placeholder-replace-me' }}
         run: |
           set -o pipefail
           terraform plan -no-color -out=tfplan 2>&1 | tee plan.txt
@@ -130,6 +126,4 @@ jobs:
 
       - name: Terraform apply
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        env:
-          TF_VAR_admin_pass: ${{ secrets.TF_VAR_ADMIN_PASS || 'unset-placeholder-replace-me' }}
         run: terraform apply -no-color -auto-approve tfplan
