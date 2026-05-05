@@ -16,10 +16,26 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
 
 import type { Peak } from "@/components/map/types";
 import { API_BASE as API_URL_BASE } from "@/lib/api-base";
+
+// Read slug from window.location instead of useParams. With static export
+// + Cloudflare rewrite to /_shells/szczyty.html, useParams() returns the
+// build-time generateStaticParams placeholder ('_') for any direct URL
+// like /szczyty/rysy/. window.location.pathname is the source of truth
+// regardless of how the shell got served.
+function readSlugFromWindow(): string | null {
+  if (typeof window === "undefined") return null;
+  const parts = window.location.pathname.split("/").filter(Boolean);
+  // /szczyty/<slug>/ → ["szczyty", "<slug>"]. Reject the build-time
+  // placeholder so the page falls into not-found rather than fetching
+  // peak with id="_".
+  if (parts[0] !== "szczyty") return null;
+  const slug = parts[1];
+  if (!slug || slug === "_") return null;
+  return slug;
+}
 
 type LoadState =
   | { kind: "loading" }
@@ -28,23 +44,23 @@ type LoadState =
   | { kind: "ready"; peak: Peak };
 
 export function PeakDetailRoute() {
-  const params = useParams<{ slug: string | string[] }>();
-  const slug = Array.isArray(params?.slug) ? params.slug[0] : params?.slug;
-
+  const [slug, setSlug] = useState<string | null>(null);
+  const [slugReady, setSlugReady] = useState(false);
   const [state, setState] = useState<LoadState>({ kind: "loading" });
 
+  // Read slug from window.location after mount (component is "use client",
+  // so window is defined here). Captures the real URL even when served via
+  // Cloudflare's /szczyty/* → /_shells/szczyty.html rewrite.
   useEffect(() => {
+    setSlug(readSlugFromWindow());
+    setSlugReady(true);
+  }, []);
+
+  useEffect(() => {
+    if (!slugReady) return;
     if (!slug) {
-      // Same defer-via-microtask pattern as trip-detail-route — keep the
-      // setState off React's commit phase to satisfy the lint rule, while
-      // still respecting unmount.
-      let cancelled = false;
-      queueMicrotask(() => {
-        if (!cancelled) setState({ kind: "not-found" });
-      });
-      return () => {
-        cancelled = true;
-      };
+      setState({ kind: "not-found" });
+      return;
     }
     let cancelled = false;
     async function load(currentSlug: string) {
@@ -74,7 +90,7 @@ export function PeakDetailRoute() {
     return () => {
       cancelled = true;
     };
-  }, [slug]);
+  }, [slug, slugReady]);
 
   return (
     <main
