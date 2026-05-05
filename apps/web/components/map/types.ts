@@ -19,7 +19,10 @@
 export interface Peak {
   id: string;
   nazwa: string;
-  trudnosc: string;
+  /** Owner-curated difficulty label (e.g. "Łatwy", "Tylko z przewodnikiem").
+   *  Optional since the OSM-imported catalog (ADR-008 PR 5a) introduces peaks
+   *  the owner hasn't curated. */
+  trudnosc?: string;
   latitude?: number;
   longitude?: number;
   height?: number;
