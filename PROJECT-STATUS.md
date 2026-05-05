@@ -1,6 +1,8 @@
-# Project status snapshot — 2026-05-04 evening
+# Project status snapshot — 2026-05-05 morning
 
 Living document — overwritten when significant state changes. Read this first after `/clear`.
+
+> **🟢 START HERE if planning the day:** [`docs/audit-2026-05-05.md`](docs/audit-2026-05-05.md) — pełny audyt nocny z 2026-05-04→05. Zawiera: 1 critical bug (broken `/trasy/[slug]/`+`/szczyty/[slug]/` w prod), top 5 security, top 10 z 43 code findings, 8 UX live observations, 10 strategic feature proposals, 4-sprint roadmap. Sprint 1 (~3h) jest gotowy do startu i ratuje produkcję.
 
 ## Where we are
 
@@ -21,24 +23,34 @@ Living document — overwritten when significant state changes. Read this first 
 | Direction B redesign — PR 5 peak pages + /o-projekcie + Strava restyle | ✅ shipped |
 | Bulk reseed (replace 12 manual seeds with Strava-imported equivalents) | ✅ done — 17 strava-* routes live, 0 manual seeds |
 | Sport_type heuristic (5 trail types: official/off-piste/walk/ski-tour/climbing) | ✅ shipped |
+| #45 statystyki "rok w liczbach" | ✅ shipped (PR #54) |
+| #46 logbook filter pills + sticky year groups | ✅ shipped (PR #55) |
+| #47 OG meta + share button | ✅ shipped (PR #56) |
+| #48 Wielka Korona Tatr tracker | ✅ shipped (PR #51 + #52 + #53 deep-link) |
+| #49 Strava photos w trip detail | ✅ shipped (PR #58, awaits live verification — replay activity z fotkami) |
+| Bonus: peak height obok nazwy w row | ✅ shipped (PR #57) |
+| Bonus: type-override map (Hike→official dla 6 tras) | ✅ shipped (część PR #55) |
 
 ## Open PRs
 
-`gh pr list` — should be empty as of 2026-05-04 evening.
+`gh pr list` — empty as of 2026-05-05 morning. Ostatnia merga: `feat/strava-photos` 2026-05-05 noc.
 
-## Active feature backlog — pick from here
+## Active feature backlog
 
-GitHub issues #45–#49, ranked by value × low complexity. Each issue has a self-contained brief — fresh context can pick one up cold and ship it.
+**Backlog #45-#49 zamknięty.** Następne zadania zob. **`docs/audit-2026-05-05.md` §6 (sprint roadmap)**.
 
-- **#45** — Statystyki "rok w liczbach" (frontend-only aggregates from existing route GeoJSON properties; ~3h)
-- **#46** — Logbook filter pills + sticky year groups (frontend-only; ~3h)
-- **#47** — OG meta + share button na `/trasy/[slug]/` (~2h, document.head mutation client-side)
-- **#48** — Wielka Korona Tatr progress tracker (haversine "bagged" detection from trail geometry vs peak coords; ~5h)
-- **#49** — Strava photos w trip detail panel (backend + frontend, S3 re-host because Strava CDN expires; ~5-7h, highest complexity)
+Sprint 1 (TEN TYDZIEŃ, ~3h) — hot fixes które ratują produkcję:
 
-Next-up suggestion: ship in numerical order (#45 → #46 → #47 → #48 → #49). Each PR small, independent, doesn't block others.
+1. ⚡ **Fix `/trasy/[slug]/` + `/szczyty/[slug]/` w prod** — dodać `apps/web/public/_redirects` z dwoma regułami. **Cloudflare SPA fallback dziś serwuje root index.html zamiast per-route shella.** Skutek: PR #56 share-link button produkuje nie-działające URL-e. 5-10 min. Zob. audyt §1.
+2. ⚡ **Webhook subscription_id + owner_id check** — `apps/api/src/strava/webhook.ts` — eliminuje DoS surface (Strava nie wysyła HMAC). 30 min. Zob. §2.1.
+3. ⚡ **Photo fetch hardening** w `fetcher.ts` — host-allowlist, AbortSignal.timeout(5000), content-length cap. 1h. Zob. §2.2.
+4. ⚡ **`apps/api/seeds/routes.json` footgun fix + `TF_VAR_admin_pass` cleanup**. 30 min. Zob. §3.1.
+5. ⚡ **DDB PITR + S3 versioning** w Terraform — backup polisa za $0.20/m. 1h. Zob. §5.4.
+6. ⚡ **DDB events TTL 7d → 30d**. 5 min.
 
-`gh issue list --repo tlyko/sprawdzamszlak --state open` for current view.
+Sprint 2-4 w audycie §6.
+
+`gh issue list --repo tlyko/sprawdzamszlak --state open` — currently empty.
 
 ## W4 — what landed (Strava integration)
 
