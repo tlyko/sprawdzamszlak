@@ -68,12 +68,19 @@ data "aws_iam_policy_document" "sprawdzamszlak_db_policy_doc" {
   # access/refresh token tuple it receives from Strava. Verify_token has
   # write scope too — `pnpm strava:subscribe` uploads it via Lambda for
   # consistency with how it gets read at webhook handshake time.
+  #
+  # ADR-008: also reads CF Access config (team_domain, aud) and the owner
+  # email allowlist for /admin/* JWT verification. None of these are
+  # secrets per se — but staying inside Parameter Store keeps the env
+  # surface clean and lets owner rotate without redeploy.
   statement {
-    sid     = "AllowAppToReadStravaParams"
+    sid     = "AllowAppToReadConfigParams"
     effect  = "Allow"
     actions = ["ssm:GetParameter", "ssm:GetParameters"]
     resources = [
       "arn:aws:ssm:eu-west-1:${data.aws_caller_identity.current.account_id}:parameter/sprawdzamszlak/strava/*",
+      "arn:aws:ssm:eu-west-1:${data.aws_caller_identity.current.account_id}:parameter/sprawdzamszlak/cf-access/*",
+      "arn:aws:ssm:eu-west-1:${data.aws_caller_identity.current.account_id}:parameter/sprawdzamszlak/admin/*",
     ]
   }
 

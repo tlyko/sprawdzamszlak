@@ -33,6 +33,8 @@ import {
 import { ddb, s3, envOrThrow } from './clients.js';
 import { handleOAuthStart, handleOAuthCallback } from './strava/oauth.js';
 import { handleWebhookGet, handleWebhookPost } from './strava/webhook.js';
+import { handlePing } from './admin/ping.js';
+import { UnauthorizedError, AuthNotConfiguredError } from './auth/cf-access.js';
 
 // ---------------------------------------------------------------------------
 // Env validation at cold start
@@ -132,8 +134,24 @@ export const handler = async (
       return handleWebhookPost(event);
     }
 
+    // Route 7: GET /admin/ping → CF Access smoke test (ADR-008)
+    if (method === 'GET' && path.endsWith('/admin/ping')) {
+      return handlePing(event);
+    }
+
     return error(404, `Path ${method} ${path} not found`);
   } catch (err) {
+    // Auth failures get clean status codes, not the generic 500 path.
+    if (err instanceof UnauthorizedError) {
+      return error(401, 'unauthorized');
+    }
+    if (err instanceof AuthNotConfiguredError) {
+      // 503 not 401 — the gate is up but the deploy is incomplete; client
+      // can distinguish "I'm being rejected" from "feature is half-shipped".
+      const requestId = context.awsRequestId ?? 'unknown';
+      console.error('Admin auth misconfigured', { requestId, detail: err.detail });
+      return error(503, `auth not configured (id=${requestId})`);
+    }
     // H1: do not leak error.message to the client. Log internally with a
     // request id that the caller can quote in support.
     const requestId = context.awsRequestId ?? 'unknown';
