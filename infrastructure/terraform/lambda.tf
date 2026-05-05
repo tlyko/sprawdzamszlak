@@ -141,6 +141,15 @@ resource "aws_apigatewayv2_route" "post_strava_webhook" {
   target    = "integrations/${aws_apigatewayv2_integration.lambda_integration.id}"
 }
 
+# ADR-008: smoke endpoint for the CF Access JWT verification flow. Lives
+# under /admin/* alongside the future plans CRUD. CF Access protects the
+# whole prefix; Lambda re-verifies the JWT in code (defense-in-depth).
+resource "aws_apigatewayv2_route" "get_admin_ping" {
+  api_id    = aws_apigatewayv2_api.http_api.id
+  route_key = "GET /admin/ping"
+  target    = "integrations/${aws_apigatewayv2_integration.lambda_integration.id}"
+}
+
 resource "aws_apigatewayv2_deployment" "main_deployment" {
   api_id = aws_apigatewayv2_api.http_api.id
 
@@ -152,6 +161,7 @@ resource "aws_apigatewayv2_deployment" "main_deployment" {
       aws_apigatewayv2_route.get_strava_oauth_callback,
       aws_apigatewayv2_route.get_strava_webhook,
       aws_apigatewayv2_route.post_strava_webhook,
+      aws_apigatewayv2_route.get_admin_ping,
       aws_apigatewayv2_integration.lambda_integration
     ]))
   }
