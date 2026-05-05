@@ -18,6 +18,7 @@ data "aws_iam_policy_document" "sprawdzamszlak_db_policy_doc" {
       aws_dynamodb_table.sprawdzamszlak_routes_table.arn,
       aws_dynamodb_table.strava_oauth_states_table.arn,
       aws_dynamodb_table.strava_events_table.arn,
+      aws_dynamodb_table.plans_table.arn,
     ]
   }
 

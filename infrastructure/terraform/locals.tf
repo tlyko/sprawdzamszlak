@@ -55,6 +55,21 @@ locals {
     ]
   }
 
+  # Planowane wyjścia (ADR-008). Owner-curated list of intended trips.
+  # Hash key is a uuid v4 minted by the API; access patterns today are
+  # all "list everything" (single-user scale ≤ ~50 rows), so no GSI.
+  plans_table = {
+    name         = "sprawdzamszlak-plans"
+    billing_mode = "PAY_PER_REQUEST"
+    hash_key     = "id"
+    attributes = [
+      {
+        name = "id"
+        type = "S"
+      }
+    ]
+  }
+
   # `peaks = { … }` and `routes = { … }` maps removed in W2 (ADR-001).
   # Data lives in apps/api/seeds/*.json and is loaded via the seed script,
   # not by Terraform.

@@ -34,6 +34,12 @@ import { ddb, s3, envOrThrow } from './clients.js';
 import { handleOAuthStart, handleOAuthCallback } from './strava/oauth.js';
 import { handleWebhookGet, handleWebhookPost } from './strava/webhook.js';
 import { handlePing } from './admin/ping.js';
+import {
+  handleCreatePlan,
+  handleDeletePlan,
+  handleListPlans,
+  handleUpdatePlan,
+} from './admin/plans.js';
 import { UnauthorizedError, AuthNotConfiguredError } from './auth/cf-access.js';
 
 // ---------------------------------------------------------------------------
@@ -137,6 +143,23 @@ export const handler = async (
     // Route 7: GET /admin/ping → CF Access smoke test (ADR-008)
     if (method === 'GET' && path.endsWith('/admin/ping')) {
       return handlePing(event);
+    }
+
+    // Routes 8-11: plans CRUD (ADR-008 PR 4). Match on event.routeKey
+    // because PATCH/DELETE carry a path parameter — endsWith doesn't
+    // distinguish /admin/plans from /admin/plans/{id}.
+    const routeKey = event.routeKey;
+    if (routeKey === 'GET /plans') {
+      return handleListPlans();
+    }
+    if (routeKey === 'POST /admin/plans') {
+      return handleCreatePlan(event);
+    }
+    if (routeKey === 'PATCH /admin/plans/{id}') {
+      return handleUpdatePlan(event);
+    }
+    if (routeKey === 'DELETE /admin/plans/{id}') {
+      return handleDeletePlan(event);
     }
 
     return error(404, `Path ${method} ${path} not found`);

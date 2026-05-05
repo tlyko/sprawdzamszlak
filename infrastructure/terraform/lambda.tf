@@ -27,6 +27,7 @@ resource "aws_lambda_function" "sprawdzamszlak_lambda" {
       DYNAMODB_ROUTES_TABLE_NAME = local.sprawdzamszlak_routes_table.name
       OAUTH_STATES_TABLE         = local.strava_oauth_states_table.name
       STRAVA_EVENTS_TABLE        = local.strava_events_table.name
+      PLANS_TABLE                = local.plans_table.name
       S3_BUCKET_NAME             = aws_s3_bucket.geojson_bucket.id
       MY_AWS_REGION              = "eu-west-1"
       STRAVA_REDIRECT_URI        = "${aws_apigatewayv2_api.http_api.api_endpoint}/${local.api_stage}/strava/oauth/callback"
@@ -90,9 +91,15 @@ resource "aws_apigatewayv2_api" "http_api" {
       "https://sprawdzamszlak.tlyko94.workers.dev",
       "http://localhost:3000",
     ]
-    allow_methods = ["GET", "OPTIONS"]
+    # POST/PATCH/DELETE added in ADR-008 PR 4 for /admin/plans CRUD.
+    allow_methods = ["GET", "POST", "PATCH", "DELETE", "OPTIONS"]
     allow_headers = ["Content-Type"]
-    max_age       = 3600
+    # Frontend on sprawdzamszlak.pl calls api.sprawdzamszlak.pl with
+    # `credentials: 'include'` so the CF Access cookie (parent-scoped to
+    # sprawdzamszlak.pl) auto-attaches. Without allow_credentials the
+    # browser drops the cookie before the request leaves.
+    allow_credentials = true
+    max_age           = 3600
   }
 }
 
@@ -150,6 +157,32 @@ resource "aws_apigatewayv2_route" "get_admin_ping" {
   target    = "integrations/${aws_apigatewayv2_integration.lambda_integration.id}"
 }
 
+# ADR-008 PR 4: plans CRUD. GET /plans is public (kronika is public);
+# write paths are gated by the same CF Access policy as /admin/ping.
+resource "aws_apigatewayv2_route" "get_plans" {
+  api_id    = aws_apigatewayv2_api.http_api.id
+  route_key = "GET /plans"
+  target    = "integrations/${aws_apigatewayv2_integration.lambda_integration.id}"
+}
+
+resource "aws_apigatewayv2_route" "post_admin_plans" {
+  api_id    = aws_apigatewayv2_api.http_api.id
+  route_key = "POST /admin/plans"
+  target    = "integrations/${aws_apigatewayv2_integration.lambda_integration.id}"
+}
+
+resource "aws_apigatewayv2_route" "patch_admin_plan" {
+  api_id    = aws_apigatewayv2_api.http_api.id
+  route_key = "PATCH /admin/plans/{id}"
+  target    = "integrations/${aws_apigatewayv2_integration.lambda_integration.id}"
+}
+
+resource "aws_apigatewayv2_route" "delete_admin_plan" {
+  api_id    = aws_apigatewayv2_api.http_api.id
+  route_key = "DELETE /admin/plans/{id}"
+  target    = "integrations/${aws_apigatewayv2_integration.lambda_integration.id}"
+}
+
 resource "aws_apigatewayv2_deployment" "main_deployment" {
   api_id = aws_apigatewayv2_api.http_api.id
 
@@ -162,6 +195,10 @@ resource "aws_apigatewayv2_deployment" "main_deployment" {
       aws_apigatewayv2_route.get_strava_webhook,
       aws_apigatewayv2_route.post_strava_webhook,
       aws_apigatewayv2_route.get_admin_ping,
+      aws_apigatewayv2_route.get_plans,
+      aws_apigatewayv2_route.post_admin_plans,
+      aws_apigatewayv2_route.patch_admin_plan,
+      aws_apigatewayv2_route.delete_admin_plan,
       aws_apigatewayv2_integration.lambda_integration
     ]))
   }
