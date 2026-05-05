@@ -209,6 +209,15 @@ async function fetchActivityPhotos(
 
 const MAX_PHOTOS_PER_ACTIVITY = 20;
 
+// Photo fetch hardening (audyt 2026-05-05 §2.2). The URL we fetch comes from
+// a trusted Strava API response, but the actual GET is a SSRF surface if
+// Strava's response shape ever drifted (or its CDN got hijacked). Cheap
+// defense-in-depth: pin to known CDN hostnames, abort slow responses, cap
+// body size so a misbehaving CDN can't OOM the Lambda.
+const PHOTO_HOST_SUFFIX_ALLOWLIST = ['.cloudfront.net', '.strava.com'];
+const PHOTO_FETCH_TIMEOUT_MS = 5000;
+const PHOTO_MAX_BYTES = 10 * 1024 * 1024; // 10 MB
+
 async function persistPhotos(
   activityId: number,
   rawPhotos: StravaPhoto[],
@@ -233,16 +242,51 @@ async function persistPhotos(
       continue;
     }
 
+    let parsedUrl: URL;
+    try {
+      parsedUrl = new URL(url);
+    } catch {
+      console.warn(`Skipping photo ${i} on activity ${activityId} — unparseable URL`);
+      continue;
+    }
+    if (
+      parsedUrl.protocol !== 'https:' ||
+      !PHOTO_HOST_SUFFIX_ALLOWLIST.some((suffix) => parsedUrl.hostname.endsWith(suffix))
+    ) {
+      console.warn(
+        `Skipping photo ${i} on activity ${activityId} — host not allowed: ${parsedUrl.hostname}`,
+      );
+      continue;
+    }
+
     let body: ArrayBuffer;
     try {
-      const imgRes = await fetch(url);
+      const imgRes = await fetch(url, { signal: AbortSignal.timeout(PHOTO_FETCH_TIMEOUT_MS) });
       if (!imgRes.ok) {
         console.warn(
           `Photo ${i} on activity ${activityId} HTTP ${imgRes.status} — skipping`,
         );
         continue;
       }
+      const lengthHdr = imgRes.headers.get('content-length');
+      if (lengthHdr) {
+        const length = Number(lengthHdr);
+        if (Number.isFinite(length) && length > PHOTO_MAX_BYTES) {
+          console.warn(
+            `Photo ${i} on activity ${activityId} content-length ${length} > ${PHOTO_MAX_BYTES} — skipping`,
+          );
+          continue;
+        }
+      }
       body = await imgRes.arrayBuffer();
+      if (body.byteLength > PHOTO_MAX_BYTES) {
+        // CDN may omit Content-Length on chunked responses; re-check after
+        // download so a lying header can't sneak through.
+        console.warn(
+          `Photo ${i} on activity ${activityId} body ${body.byteLength} > ${PHOTO_MAX_BYTES} — skipping`,
+        );
+        continue;
+      }
     } catch (err) {
       console.warn(`Photo ${i} on activity ${activityId} fetch failed`, err);
       continue;
