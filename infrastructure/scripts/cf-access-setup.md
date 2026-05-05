@@ -44,23 +44,60 @@ Bez Authorization header — 401. ✅ Gate działa.
 
 ## Faza B — PR 3: custom domain `api.sprawdzamszlak.pl`
 
-PR 3 wprowadzi:
+PR 3 wprowadza:
 
 - ACM cert dla `api.sprawdzamszlak.pl` (DNS validation — owner musi dodać CNAME).
+- `aws_acm_certificate_validation` z 30-min timeoutem — apply zatrzymuje się tu i czeka aż CNAME się propaguje.
 - API GW custom domain + mapping prod stage → `/`.
-- Output `api_gw_regional_domain_name` (target dla CF DNS CNAME).
+- TF outputs: `api_cert_validation_records`, `api_custom_domain_target`, `api_custom_domain_url`.
 
-Po merge PR 3 — pierwszy `terraform apply` **prawdopodobnie się wywróci** na walidacji certu (ACM czeka na CNAME). Owner:
+### Krok po kroku po mergu PR 3
 
-1. Otwiera workflow run, czyta error.
-2. Z `terraform plan` w PR comment wyjmuje validation records (`_xyz.api.sprawdzamszlak.pl → _abc.acm-validations.aws`).
-3. W CF dashboard → DNS → adds CNAME (DNS only, gray cloud, **nie** orange).
-4. Czeka 2-5 min, aż ACM validation flip do ISSUED (sprawdza w AWS Console → ACM).
-5. Re-runs workflow `terraform.yml` przez `workflow_dispatch`. Apply kończy się czysto.
+1. **GHA odpala terraform apply.** Cert resource powstaje (PENDING_VALIDATION), potem `aws_acm_certificate_validation` zaczyna pollować ACM. Apply staje na tym kroku — to OK, czeka na CNAME.
 
-Następnie:
+2. **Owner: zdobądź validation records.** Equivalent do TF outputu (TF tu jeszcze nie pisze outputów — apply nie skończony):
 
-6. CF dashboard → DNS → adds CNAME: `api → <api_gw_regional_domain_name>` (z output Terraforma). **Orange cloud włączony** (proxied) — bez tego CF Access nie może osadzić auth gate.
+   ```bash
+   ARN=$(aws acm list-certificates --region eu-west-1 \
+     --query 'CertificateSummaryList[?DomainName==`api.sprawdzamszlak.pl`].CertificateArn' \
+     --output text)
+   aws acm describe-certificate --region eu-west-1 --certificate-arn "$ARN" \
+     --query 'Certificate.DomainValidationOptions[0].ResourceRecord'
+   ```
+
+   Wynik:
+
+   ```json
+   {
+     "Name":  "_xyz123.api.sprawdzamszlak.pl.",
+     "Type":  "CNAME",
+     "Value": "_abc456.xxxxxx.acm-validations.aws."
+   }
+   ```
+
+3. **CF dashboard → DNS → Add record (DNS only, gray cloud, NOT proxied):**
+   - Type: `CNAME`
+   - Name: `_xyz123.api` (CF strippuje sufiks zone'a — wpisujesz tylko prefix)
+   - Target: `_abc456.xxxxxx.acm-validations.aws.`
+   - Proxy status: **DNS only** (gray cloud).
+
+4. ACM auto-pollule co ~minutę. Po 1-3 min `terraform apply` rusza dalej (nie musisz nic robić — TF poll co kilkadziesiąt sekund).
+
+5. **Jeśli przegapisz 30-min okno** — apply kończy się timeoutem. Re-run workflow `terraform.yml` przez `workflow_dispatch`. Drugi apply: cert już ISSUED, validation resource przechodzi natychmiast, reszta zasobów dokończona.
+
+6. Apply kończy się sukcesem. **Czytaj outputy:**
+
+   ```bash
+   cd infrastructure/terraform
+   terraform output api_custom_domain_target  # np. d-abc123.execute-api.eu-west-1.amazonaws.com
+   terraform output api_custom_domain_url     # https://api.sprawdzamszlak.pl
+   ```
+
+7. **CF dashboard → DNS → Add record (proxied, orange cloud):**
+   - Type: `CNAME`
+   - Name: `api`
+   - Target: wartość z `api_custom_domain_target` (bez końcowej kropki w UI CF).
+   - Proxy status: **Proxied** (orange cloud) — bez tego CF Access nie może osadzić auth gate.
 
 ## Faza C — CF Access app (manual w dashboardzie)
 
