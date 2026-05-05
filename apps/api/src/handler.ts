@@ -122,44 +122,49 @@ export const handler = async (
 
     // Route 3: GET /strava/oauth/start → 302 to Strava authorize URL
     if (method === 'GET' && path.endsWith('/strava/oauth/start')) {
-      return handleOAuthStart();
+      return await handleOAuthStart();
     }
 
     // Route 4: GET /strava/oauth/callback → exchange code, write tokens, 302 to web
     if (method === 'GET' && path.endsWith('/strava/oauth/callback')) {
-      return handleOAuthCallback(event);
+      return await handleOAuthCallback(event);
     }
 
     // Route 5: GET /strava/webhook → subscription handshake (echo challenge)
     if (method === 'GET' && path.endsWith('/strava/webhook')) {
-      return handleWebhookGet(event);
+      return await handleWebhookGet(event);
     }
 
     // Route 6: POST /strava/webhook → activity event (idempotent PutItem)
     if (method === 'POST' && path.endsWith('/strava/webhook')) {
-      return handleWebhookPost(event);
+      return await handleWebhookPost(event);
     }
 
     // Route 7: GET /admin/ping → CF Access smoke test (ADR-008)
     if (method === 'GET' && path.endsWith('/admin/ping')) {
-      return handlePing(event);
+      return await handlePing(event);
     }
 
     // Routes 8-11: plans CRUD (ADR-008 PR 4). Match on event.routeKey
     // because PATCH/DELETE carry a path parameter — endsWith doesn't
     // distinguish /admin/plans from /admin/plans/{id}.
+    //
+    // `await` is mandatory on every dispatch above — a bare `return promise`
+    // resolves OUTSIDE this try block, so anything the inner handler throws
+    // (UnauthorizedError, AuthNotConfiguredError, …) escapes the catch and
+    // surfaces as a generic Lambda 500 instead of the intended 401/503.
     const routeKey = event.routeKey;
     if (routeKey === 'GET /plans') {
-      return handleListPlans();
+      return await handleListPlans();
     }
     if (routeKey === 'POST /admin/plans') {
-      return handleCreatePlan(event);
+      return await handleCreatePlan(event);
     }
     if (routeKey === 'PATCH /admin/plans/{id}') {
-      return handleUpdatePlan(event);
+      return await handleUpdatePlan(event);
     }
     if (routeKey === 'DELETE /admin/plans/{id}') {
-      return handleDeletePlan(event);
+      return await handleDeletePlan(event);
     }
 
     return error(404, `Path ${method} ${path} not found`);
