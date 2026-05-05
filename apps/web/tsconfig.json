@@ -14,5 +14,7 @@
     }
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
-  "exclude": ["node_modules"]
+  // The Worker entry has its own tsconfig (tsconfig.worker.json) because it
+  // pulls @cloudflare/workers-types globals that conflict with DOM lib.
+  "exclude": ["node_modules", "worker", "out", ".next"]
 }

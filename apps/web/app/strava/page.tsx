@@ -12,7 +12,7 @@
  */
 import type { Metadata } from "next";
 
-const API_BASE = "https://akoz890bg6.execute-api.eu-west-1.amazonaws.com/prod";
+import { API_BASE } from "@/lib/api-base";
 
 export const metadata: Metadata = {
   title: "połącz ze stravą",

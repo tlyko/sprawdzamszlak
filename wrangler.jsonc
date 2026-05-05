@@ -1,22 +1,31 @@
 {
   // Cloudflare Workers + Static Assets config for the frontend.
-  // The build step (`pnpm -F sprawdzamszlak-frontend build`) produces a
-  // pure-static export under apps/web/out/, which Cloudflare serves directly.
   //
-  // Worker name must match the one set in the Cloudflare dashboard. If they
-  // diverge, deploy fails with "Worker not found".
+  // Build (`pnpm -F sprawdzamszlak-frontend build`) emits a pure-static
+  // export under `apps/web/out/`. Per ADR-008 PR 5b a Worker entry script
+  // (`apps/web/worker/index.ts`) sits in front of the asset binding and
+  // proxies `/api/*` to the AWS HTTP API. Same-origin = no cross-origin
+  // auth, one CF Access app instead of two.
+  //
+  // Worker name must match the one set in the Cloudflare dashboard. If
+  // they diverge, deploy fails with "Worker not found".
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "sprawdzamszlak",
+  "main": "./apps/web/worker/index.ts",
   "compatibility_date": "2026-05-03",
 
   "assets": {
     "directory": "./apps/web/out",
+    // Worker code calls `env.ASSETS.fetch(req)` for non-/api paths to
+    // delegate static-asset semantics (including _redirects rewrites)
+    // to the assets binding. The binding name is referenced from
+    // `apps/web/worker/index.ts`.
+    "binding": "ASSETS",
     // SPA fallback so dynamic routes like /trasy/[slug]/ (Strava-imported
     // activities, slugs known only at runtime) hydrate against the static
-    // shell. Pre-rendered routes (/, /strava/, /strava/connected/) still
-    // serve directly. Trade-off: typo URLs serve index.html and the SPA
-    // shows an empty state instead of a hard 404 — acceptable for a
-    // single-user app.
+    // shell — see apps/web/public/_redirects for the per-route rewrites.
+    // Trade-off: typo URLs serve index.html and the SPA shows an empty
+    // state instead of a hard 404, which is fine for a single-user app.
     "not_found_handling": "single-page-application"
   }
 }
