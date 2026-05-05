@@ -29,16 +29,27 @@ export interface PeakTierConfig {
 }
 
 export const TIERS: Record<PeakTier, PeakTierConfig> = {
+  // Always-visible tier kept tight (≥2600m → ~10 peaks) so the default
+  // zoom 11 view shows a clean constellation, not a swarm.
   summit: { size: 9, fillVar: "--alt-summit", filled: true, markerMinZoom: 0 },
-  high: { size: 7, fillVar: "--alt-high", filled: true, markerMinZoom: 11 },
-  mid: { size: 5, fillVar: "--alt-mid", filled: false, markerMinZoom: 12 },
-  low: { size: 3, fillVar: "--alt-low", filled: false, markerMinZoom: 13 },
+  high: { size: 7, fillVar: "--alt-high", filled: true, markerMinZoom: 12 },
+  mid: { size: 5, fillVar: "--alt-mid", filled: false, markerMinZoom: 13 },
+  low: { size: 3, fillVar: "--alt-low", filled: false, markerMinZoom: 14 },
 };
 
+// Real OSM-imported catalog (~320 peaks ≥1800m with Wikipedia tag) was
+// denser than the original ~150 estimate, so thresholds + min-zoom are
+// tighter than ADR-008 PR 5c shipped. At default zoom 11 only the
+// summit tier (≥2600m, ~10 peaks) renders. Each zoom step in reveals a
+// tier:
+//   zoom 11  summit                ~10 dots — clean low-zoom view
+//   zoom 12  + high (≥2400m)       ~50 dots
+//   zoom 13  + mid  (≥2200m)       ~150 dots
+//   zoom 14+ + low                 all
 export function classifyPeak(height: number | undefined): PeakTier {
   if (height === undefined) return "low";
-  if (height >= 2500) return "summit";
-  if (height >= 2300) return "high";
-  if (height >= 2100) return "mid";
+  if (height >= 2600) return "summit";
+  if (height >= 2400) return "high";
+  if (height >= 2200) return "mid";
   return "low";
 }

@@ -18,7 +18,6 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
 
 import { TripDetailPanel } from "@/components/logbook/trip-detail-panel";
 import {
@@ -29,6 +28,19 @@ import { useOgMeta } from "@/components/logbook/og-meta";
 import type { Trail, TrailGeoJson } from "@/components/map/types";
 import { API_BASE as API_URL_BASE } from "@/lib/api-base";
 
+// See peak-detail-route for the same pattern: useParams() returns the
+// build-time placeholder ('_') when the page is served via the
+// /trasy/* → /_shells/trasy.html Cloudflare rewrite. Read the slug from
+// window.location to get the real one.
+function readSlugFromWindow(): string | null {
+  if (typeof window === "undefined") return null;
+  const parts = window.location.pathname.split("/").filter(Boolean);
+  if (parts[0] !== "trasy") return null;
+  const slug = parts[1];
+  if (!slug || slug === "_") return null;
+  return slug;
+}
+
 type LoadState =
   | { kind: "loading" }
   | { kind: "not-found" }
@@ -36,27 +48,22 @@ type LoadState =
   | { kind: "ready"; trail: Trail; meta: TripMeta | null };
 
 export function TripDetailRoute() {
-  const params = useParams<{ slug: string | string[] }>();
-  // useParams returns either a string or string[] depending on whether the
-  // route is catch-all. Ours is single-segment, so we narrow defensively.
-  const slug = Array.isArray(params?.slug) ? params.slug[0] : params?.slug;
-
+  const [slug, setSlug] = useState<string | null>(null);
+  const [slugReady, setSlugReady] = useState(false);
   const [state, setState] = useState<LoadState>({ kind: "loading" });
 
+  // Read slug post-mount from window.location (always defined in
+  // "use client" components after hydration).
   useEffect(() => {
+    setSlug(readSlugFromWindow());
+    setSlugReady(true);
+  }, []);
+
+  useEffect(() => {
+    if (!slugReady) return;
     if (!slug) {
-      // Schedule the state flip on the next tick rather than synchronously —
-      // the lint rule that flags sync setState in effects exists to prevent
-      // cascading renders, and a queueMicrotask defers the update outside
-      // React's commit phase. We still respect `cancelled` so a fast unmount
-      // doesn't write stale state.
-      let cancelled = false;
-      queueMicrotask(() => {
-        if (!cancelled) setState({ kind: "not-found" });
-      });
-      return () => {
-        cancelled = true;
-      };
+      setState({ kind: "not-found" });
+      return;
     }
     let cancelled = false;
     async function load(currentSlug: string) {
@@ -98,7 +105,7 @@ export function TripDetailRoute() {
     return () => {
       cancelled = true;
     };
-  }, [slug]);
+  }, [slug, slugReady]);
 
   // Build OG meta only when the trip is ready. The hook handles the
   // null-input case gracefully (no-op + no cleanup), so loading / error
