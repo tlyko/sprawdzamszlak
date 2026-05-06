@@ -133,7 +133,7 @@ interface StravaPhoto {
 // Strava streams API returns the keyed-by-type shape regardless of the
 // `key_by_type` query param in current production behaviour (the docs lie).
 // We expect: { latlng: { data: [[lat, lng], ...] }, altitude: { data: [...] }, ... }
-interface StravaStreams {
+export interface StravaStreams {
   latlng?: { data: Array<[number, number]> };
   altitude?: { data: number[] };
   // Other keys (time, distance) come back too but we don't use them yet.
@@ -343,7 +343,12 @@ interface GeoJSONFeature {
   };
 }
 
-function buildGeoJSON(activity: StravaActivity, streams: StravaStreams): GeoJSONFeature | null {
+// Exported for tests in fetcher.test.ts. Pure function — no side effects,
+// no I/O — but it's the seam where Strava's [lat, lng] convention flips to
+// GeoJSON's [lng, lat], where altitude becomes optional, and where the
+// activity-id type-pun lives. Wrong here = malformed S3 file the rest of
+// the system trusts.
+export function buildGeoJSON(activity: StravaActivity, streams: StravaStreams): GeoJSONFeature | null {
   const latlng = streams.latlng;
   if (!latlng || !Array.isArray(latlng.data) || latlng.data.length === 0) {
     return null;
