@@ -15,21 +15,9 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 
+import type { Plan } from "@sprawdzamszlak/shared";
 import { API_BASE } from "@/lib/api-base";
 import type { Peak } from "@/components/map/types";
-
-interface Plan {
-  id: string;
-  peak_slug: string;
-  target_year: number;
-  target_month?: number;
-  status: "planned" | "done" | "skipped";
-  route_idea?: string;
-  notes?: string;
-  strava_id?: string;
-  created_at: number;
-  updated_at: number;
-}
 
 type LoadState =
   | { kind: "loading" }

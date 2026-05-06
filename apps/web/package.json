@@ -10,6 +10,7 @@
     "typecheck:worker": "tsc -p tsconfig.worker.json --noEmit"
   },
   "dependencies": {
+    "@sprawdzamszlak/shared": "workspace:*",
     "leaflet": "^1.9.4",
     "next": "16.2.4",
     "react": "19.2.0",
