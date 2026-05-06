@@ -16,10 +16,12 @@ import { PutCommand } from '@aws-sdk/lib-dynamodb';
 import { PutObjectCommand } from '@aws-sdk/client-s3';
 import { GetParameterCommand, PutParameterCommand } from '@aws-sdk/client-ssm';
 import {
+  StravaActivitySchema,
   StravaTokensSchema,
   SPORT_TYPE_ALLOWLIST,
   sportTypeToRouteType,
   type RoutePhoto,
+  type StravaActivity,
   type StravaTokens,
   type StravaSportType,
 } from '@sprawdzamszlak/shared';
@@ -117,18 +119,7 @@ async function getValidAccessToken(): Promise<string> {
 // ---------------------------------------------------------------------------
 // Strava API
 // ---------------------------------------------------------------------------
-interface StravaActivity {
-  id: number;
-  name: string;
-  sport_type: string;
-  start_date: string;
-  distance?: number;
-  total_elevation_gain?: number;
-  photos?: {
-    primary?: { id?: number } | null;
-    count?: number;
-  } | null;
-}
+// StravaActivity now lives in @sprawdzamszlak/shared (StravaActivitySchema).
 
 // Shape of a single photo from `GET /activities/{id}/photos?size=600`.
 // `urls` is keyed by size — we always ask for 600. Caption is owner-set on
@@ -161,7 +152,14 @@ async function fetchActivity(id: number, accessToken: string): Promise<StravaAct
     const body = await resp.text().catch(() => '<unreadable>');
     throw new Error(`fetchActivity ${id} failed: HTTP ${resp.status} ${body}`);
   }
-  return (await resp.json()) as StravaActivity;
+  // Validate the shape we depend on (id, name, sport_type, start_date,
+  // distance, total_elevation_gain, photos summary). Unknown upstream
+  // fields are stripped silently — see StravaActivitySchema for rationale.
+  // A failure here means Strava sent something we can't safely
+  // GeoJSON-encode; throwing surfaces the stream record for retry/skip
+  // rather than writing malformed metadata to S3+DDB.
+  const raw = await resp.json();
+  return StravaActivitySchema.parse(raw);
 }
 
 async function fetchActivityStreams(id: number, accessToken: string): Promise<StravaStreams> {
