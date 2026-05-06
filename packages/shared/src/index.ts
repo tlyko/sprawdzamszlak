@@ -143,7 +143,10 @@ export type RouteWithUrl = z.infer<typeof RouteWithUrlSchema>;
 // Strava activity — created in W4. Placeholder so apps/web can import the
 // type now even though only the empty schema exists.
 // ---------------------------------------------------------------------------
-export const StravaActivityIdSchema = z.string().regex(/^[0-9]{1,20}$/);
+// Strava activity IDs come back as positive integers in JSON. The
+// `^[0-9]{1,20}$` upper bound on digit count was a hold-over from when
+// this lived as a string regex; integers fit comfortably below 2^53.
+export const StravaActivityIdSchema = z.number().int().positive();
 
 // Strava sport_type values that should be imported as routes.
 // Owner also logs gym workouts, road running, and road cycling — those
@@ -170,10 +173,35 @@ export const StravaTokensSchema = z.object({
 });
 export type StravaTokens = z.infer<typeof StravaTokensSchema>;
 
-// Concrete schema is filled in W4 once Strava API shapes are pinned.
+// Strava activity payload — only the fields we read in the fetcher Lambda
+// plus the photo-summary block we use to decide whether to call the photos
+// endpoint. Strava returns lots more (segments, gear, splits, kudos, etc.);
+// zod's default `.strip()` drops them silently which is what we want — a new
+// upstream field shouldn't fail the import.
+//
+// `sport_type` stays as a free-form string here even though we have
+// StravaSportTypeSchema — the fetcher's SPORT_TYPE_ALLOWLIST filter is what
+// gates the import, and Strava periodically introduces new sport_types
+// (Ride → Ride/MountainBikeRide split, etc.). Treat unknowns as pass-through
+// strings, log+skip happens at the allowlist check.
 export const StravaActivitySchema = z.object({
   id: StravaActivityIdSchema,
-  // …more fields in W4…
+  name: z.string(),
+  sport_type: z.string(),
+  // ISO 8601 string, UTC. We don't z.string().datetime() it because Strava
+  // sometimes emits a Z-less form ("2025-07-20T08:30:00") and we'd rather
+  // pass that through to `new Date(...)` than reject the activity.
+  start_date: z.string().min(1),
+  distance: z.number().optional(),
+  total_elevation_gain: z.number().optional(),
+  photos: z
+    .object({
+      primary: z
+        .object({ id: z.number().optional() })
+        .nullish(),
+      count: z.number().optional(),
+    })
+    .nullish(),
 });
 
 export type StravaActivity = z.infer<typeof StravaActivitySchema>;
