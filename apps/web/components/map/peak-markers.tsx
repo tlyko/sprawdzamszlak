@@ -9,7 +9,7 @@
  */
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { Marker, Popup } from "react-leaflet";
 import L from "leaflet";
 import Link from "next/link";
@@ -19,9 +19,13 @@ import { TIERS, classifyPeak, type PeakTier } from "./peak-tier";
 interface PeakMarkersProps {
   peaks: Peak[];
   zoom: number;
+  // When set, the matching marker auto-opens its popup once mounted (deep-link
+  // from /szczyty/[slug] "pokaż na mapie"). Decoupled from the click-to-open
+  // path so manual clicks still work normally.
+  selectedPeakId?: string | null;
 }
 
-export function PeakMarkers({ peaks, zoom }: PeakMarkersProps) {
+export function PeakMarkers({ peaks, zoom, selectedPeakId }: PeakMarkersProps) {
   const visiblePeaks = useMemo(() => {
     return peaks
       .filter((p) => p.latitude !== undefined && p.longitude !== undefined)
@@ -32,7 +36,12 @@ export function PeakMarkers({ peaks, zoom }: PeakMarkersProps) {
   return (
     <>
       {visiblePeaks.map(({ peak, tier }) => (
-        <PeakMarker key={peak.id} peak={peak} tier={tier} />
+        <PeakMarker
+          key={peak.id}
+          peak={peak}
+          tier={tier}
+          autoOpenPopup={selectedPeakId === peak.id}
+        />
       ))}
     </>
   );
@@ -41,13 +50,26 @@ export function PeakMarkers({ peaks, zoom }: PeakMarkersProps) {
 interface PeakMarkerProps {
   peak: Peak;
   tier: PeakTier;
+  autoOpenPopup?: boolean;
 }
 
-function PeakMarker({ peak, tier }: PeakMarkerProps) {
+function PeakMarker({ peak, tier, autoOpenPopup = false }: PeakMarkerProps) {
   const icon = useMemo(() => buildDotIcon(tier), [tier]);
+  const markerRef = useRef<L.Marker | null>(null);
+
+  // Open the popup whenever this marker becomes the selected one. The flyTo
+  // animation in FlyToSelectedPeak runs ~1.2s; opening immediately works
+  // because Leaflet anchors the popup to the marker, not to the viewport.
+  useEffect(() => {
+    if (!autoOpenPopup) return;
+    markerRef.current?.openPopup();
+  }, [autoOpenPopup]);
 
   return (
     <Marker
+      ref={(instance) => {
+        markerRef.current = instance;
+      }}
       position={[peak.latitude as number, peak.longitude as number]}
       icon={icon}
       // Higher-tier dots draw on top when peaks are clustered.

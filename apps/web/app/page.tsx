@@ -51,6 +51,7 @@ const Map = dynamic<MapShellProps>(
 export default function Home() {
   const { peaks, trails, trailGeoData, isLoading } = useTripData();
   const [selectedTripId, setSelectedTripId] = useState<string | null>(null);
+  const [selectedPeakId, setSelectedPeakId] = useState<string | null>(null);
 
   // One-shot deep-link from `?trip=<id>` — wired so /korona-tatr/ can
   // hand off a bagged peak's trail to this page (clicking a bagged peak
@@ -82,6 +83,27 @@ export default function Home() {
     };
   }, [trails]);
 
+  // One-shot deep-link from `?peak=<slug>` — sister to `?trip=<id>` above.
+  // Wired so /szczyty/[slug]/ "pokaż na mapie" lands here with the map
+  // already flown to the peak and its popup opened. Same StrictMode-safe
+  // ref guard, same microtask defer.
+  const initialPeakFromUrlApplied = useRef(false);
+  useEffect(() => {
+    if (initialPeakFromUrlApplied.current) return;
+    if (typeof window === "undefined" || peaks.length === 0) return;
+    const params = new URLSearchParams(window.location.search);
+    const peakId = params.get("peak");
+    initialPeakFromUrlApplied.current = true;
+    if (!peakId || !peaks.some((p) => p.id === peakId)) return;
+    let cancelled = false;
+    queueMicrotask(() => {
+      if (!cancelled) setSelectedPeakId(peakId);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [peaks]);
+
   return (
     <main
       // Mobile: column. Desktop: row with the list pinned to a 420px column
@@ -107,6 +129,7 @@ export default function Home() {
           trailGeoData={trailGeoData}
           selectedTripId={selectedTripId}
           onTripSelect={setSelectedTripId}
+          selectedPeakId={selectedPeakId}
         />
       </section>
 
