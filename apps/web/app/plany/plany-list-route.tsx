@@ -154,9 +154,17 @@ export function PlanyListRoute() {
       )}
 
       {state.kind === "ready" && grouped.length === 0 && (
-        <p className="font-mono text-sm text-ink-3">
-          Lista pusta. Nic jeszcze nie zaplanowane.
-        </p>
+        <div className="flex flex-col gap-3 font-mono text-sm text-ink-3">
+          <p>Lista pusta. Nic jeszcze nie zaplanowane.</p>
+          <p>
+            <Link
+              href="/plany/admin/"
+              className="font-mono text-[12px] uppercase tracking-[0.06em] text-ink-2 hover:text-ink-1 transition-colors"
+            >
+              Zacznij od Korony →
+            </Link>
+          </p>
+        </div>
       )}
 
       {state.kind === "ready" &&
