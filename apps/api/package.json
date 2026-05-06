@@ -15,7 +15,8 @@
     "strava:replay": "node --experimental-strip-types scripts/strava-replay.ts",
     "strava:replay-many": "node --experimental-strip-types scripts/strava-replay-many.ts",
     "strava:drop-manual-seeds": "node --experimental-strip-types scripts/strava-drop-manual-seeds.ts",
-    "import:osm-peaks": "node --experimental-strip-types scripts/import-osm-peaks.ts"
+    "import:osm-peaks": "node --experimental-strip-types scripts/import-osm-peaks.ts",
+    "polonize:peaks": "node --experimental-strip-types scripts/polonize-peaks.ts"
   },
   "dependencies": {
     "@sprawdzamszlak/shared": "workspace:*"

@@ -5,18 +5,18 @@
     "latitude": 49.1738838,
     "longitude": 20.1484051,
     "height": 2414,
-    "wiki_url": "https://sk.wikipedia.org/wiki/Kupola_(Vysok%C3%A9_Tatry)"
+    "wiki_url": "https://pl.wikipedia.org/wiki/Baniasta_Turnia"
   },
   {
     "id": "baranie_rogi",
-    "nazwa": "Baranie Rogi (Baranie rohy)",
+    "nazwa": "Baranie Rogi",
     "trudnosc": "Tylko z przewodnikiem",
     "trudnosc_wspinaczkowa": "0+",
     "latitude": 49.2016399,
     "longitude": 20.1971608,
     "height": 2526,
     "description_html": "Ósmy szczyt WKT, popularny cel pozaszlakowy.",
-    "wiki_url": "https://sk.wikipedia.org/wiki/Baranie_rohy"
+    "wiki_url": "https://pl.wikipedia.org/wiki/Baranie_Rogi"
   },
   {
     "id": "batyzowiecki_szczyt",
@@ -24,15 +24,15 @@
     "latitude": 49.1653667,
     "longitude": 20.1241414,
     "height": 2448,
-    "wiki_url": "https://sk.wikipedia.org/wiki/Batizovsk%C3%BD_%C5%A1t%C3%ADt"
+    "wiki_url": "https://pl.wikipedia.org/wiki/Baty%C5%BCowiecki_Szczyt"
   },
   {
     "id": "belianska_kopa",
-    "nazwa": "Belianska kopa",
+    "nazwa": "Bielska Kopa",
     "latitude": 49.2271224,
     "longitude": 20.2241975,
     "height": 1835,
-    "wiki_url": "https://sk.wikipedia.org/wiki/Belianska_kopa"
+    "wiki_url": "https://pl.wikipedia.org/wiki/Bielska_Kopa"
   },
   {
     "id": "beskid",
@@ -64,7 +64,7 @@
     "latitude": 49.2301884,
     "longitude": 20.2647921,
     "height": 1947,
-    "wiki_url": "https://sk.wikipedia.org/wiki/Buja%C4%8D%C3%AD_vrch_(Belianske_Tatry)"
+    "wiki_url": "https://pl.wikipedia.org/wiki/Bujaczy_Wierch"
   },
   {
     "id": "bula_pod_rysami",
@@ -80,7 +80,7 @@
     "latitude": 49.1886176,
     "longitude": 19.8425872,
     "height": 2248,
-    "wiki_url": "https://sk.wikipedia.org/wiki/Bystr%C3%A1_(vrch_v_Z%C3%A1padn%C3%BDch_Tatr%C3%A1ch)"
+    "wiki_url": "https://pl.wikipedia.org/wiki/Bystra_(Tatry)"
   },
   {
     "id": "bzdziochowa_kopa",
@@ -91,11 +91,11 @@
   },
   {
     "id": "certova_veza",
-    "nazwa": "Čertova veža",
+    "nazwa": "Ponad Kocioł Turnia",
     "latitude": 49.1614965,
     "longitude": 20.1392537,
     "height": 2525,
-    "wiki_url": "https://sk.wikipedia.org/wiki/%C4%8Certova_ve%C5%BEa"
+    "wiki_url": "https://pl.wikipedia.org/wiki/Ponad_Kocio%C5%82_Turnia"
   },
   {
     "id": "chlopek",
@@ -150,7 +150,7 @@
     "latitude": 49.1737045,
     "longitude": 20.0915347,
     "height": 2500,
-    "wiki_url": "https://sk.wikipedia.org/wiki/%C5%A4a%C5%BEk%C3%BD_%C5%A1t%C3%ADt"
+    "wiki_url": "https://pl.wikipedia.org/wiki/Ci%C4%99%C5%BCki_Szczyt"
   },
   {
     "id": "cuba_nad_karbom",
@@ -224,7 +224,7 @@
     "latitude": 49.2052868,
     "longitude": 20.2009245,
     "height": 2425,
-    "wiki_url": "https://sk.wikipedia.org/wiki/%C4%8Cierny_%C5%A1t%C3%ADt"
+    "wiki_url": "https://pl.wikipedia.org/wiki/Czarny_Szczyt"
   },
   {
     "id": "diabla_turnia",
@@ -250,11 +250,11 @@
   },
   {
     "id": "draci_stit",
-    "nazwa": "Dračí štít",
+    "nazwa": "Smoczy Szczyt",
     "latitude": 49.1718295,
     "longitude": 20.0953709,
     "height": 2523,
-    "wiki_url": "https://sk.wikipedia.org/wiki/Dra%C4%8D%C3%AD_%C5%A1t%C3%ADt"
+    "wiki_url": "https://pl.wikipedia.org/wiki/Smoczy_Szczyt"
   },
   {
     "id": "drag",
@@ -266,14 +266,14 @@
   },
   {
     "id": "durny_szczyt",
-    "nazwa": "Durny Szczyt (Pyšný štít)",
+    "nazwa": "Durny Szczyt",
     "trudnosc": "Tylko z przewodnikiem",
     "trudnosc_wspinaczkowa": "I / II",
     "latitude": 49.1975923,
     "longitude": 20.207996,
     "height": 2621,
     "description_html": "Uważany za jeden z najtrudniejszych do zdobycia szczytów w WKT.",
-    "wiki_url": "https://sk.wikipedia.org/wiki/Py%C5%A1n%C3%BD_%C5%A1t%C3%ADt"
+    "wiki_url": "https://pl.wikipedia.org/wiki/Durny_Szczyt"
   },
   {
     "id": "dwoista_turnia",
@@ -289,7 +289,7 @@
     "latitude": 49.1782881,
     "longitude": 20.1439535,
     "height": 2376,
-    "wiki_url": "https://sk.wikipedia.org/wiki/Div%C3%A1_ve%C5%BEa"
+    "wiki_url": "https://pl.wikipedia.org/wiki/Dzika_Turnia"
   },
   {
     "id": "furkot",
@@ -304,22 +304,22 @@
   },
   {
     "id": "furkotske_solisko",
-    "nazwa": "Furkotské Solisko",
+    "nazwa": "Furkotne Solisko",
     "latitude": 49.1563834,
     "longitude": 20.0345082,
     "height": 2320,
-    "wiki_url": "https://sk.wikipedia.org/wiki/Furkotsk%C3%A9_Solisko"
+    "wiki_url": "https://pl.wikipedia.org/wiki/Furkotne_Solisko"
   },
   {
     "id": "ganek",
-    "nazwa": "Ganek (Gánok)",
+    "nazwa": "Ganek",
     "trudnosc": "Tylko z przewodnikiem",
     "trudnosc_wspinaczkowa": "II / III (słynna Galeria Gankowa)",
     "latitude": 49.1742559,
     "longitude": 20.1039921,
     "height": 2462,
     "description_html": "Trójwierzchołkowy szczyt w głównej grani Tatr.",
-    "wiki_url": "https://sk.wikipedia.org/wiki/G%C3%A1nok_(vrch)"
+    "wiki_url": "https://pl.wikipedia.org/wiki/Ganek_(Tatry)"
   },
   {
     "id": "gasienicowa_turnia",
@@ -331,22 +331,22 @@
   },
   {
     "id": "gerlach",
-    "nazwa": "Gerlach (Gerlachovský štít)",
+    "nazwa": "Gerlach",
     "trudnosc": "Tylko z przewodnikiem",
     "trudnosc_wspinaczkowa": "I (Droga Martina)",
     "latitude": 49.1640319,
     "longitude": 20.1340595,
     "height": 2655,
     "description_html": "Najwyższy szczyt Tatr i całych Karpat. Należy do Wielkiej Korony Tatr.",
-    "wiki_url": "https://sk.wikipedia.org/wiki/Gerlachovsk%C3%BD_%C5%A1t%C3%ADt"
+    "wiki_url": "https://pl.wikipedia.org/wiki/Gerlach"
   },
   {
     "id": "gerlachowska_kopa",
-    "nazwa": "Gerlachowska Kopa",
+    "nazwa": "Wyżnia Wysoka Gerlachowska",
     "latitude": 49.1674684,
     "longitude": 20.1306746,
     "height": 2581,
-    "wiki_url": "https://sk.wikipedia.org/wiki/Ve%C4%BEk%C3%A1_Litvorov%C3%A1_ve%C5%BEa"
+    "wiki_url": "https://pl.wikipedia.org/wiki/Wy%C5%BCnia_Wysoka_Gerlachowska"
   },
   {
     "id": "giewont",
@@ -387,15 +387,15 @@
     "latitude": 49.1857081,
     "longitude": 20.1588594,
     "height": 2260,
-    "wiki_url": "https://sk.wikipedia.org/wiki/Hranat%C3%A1_ve%C5%BEa"
+    "wiki_url": "https://pl.wikipedia.org/wiki/Graniasta_Turnia"
   },
   {
     "id": "grun",
-    "nazwa": "Grúň",
+    "nazwa": "Mała Bystra",
     "latitude": 49.1847965,
     "longitude": 19.8375235,
     "height": 2108,
-    "wiki_url": "https://sk.wikipedia.org/wiki/Gr%C3%BA%C5%88_(vrch_v_Z%C3%A1padn%C3%BDch_Tatr%C3%A1ch)"
+    "wiki_url": "https://pl.wikipedia.org/wiki/Ma%C5%82a_Bystra"
   },
   {
     "id": "hawran",
@@ -403,7 +403,7 @@
     "latitude": 49.2484692,
     "longitude": 20.1976871,
     "height": 2152,
-    "wiki_url": "https://sk.wikipedia.org/wiki/Havran_(vrch_v_Tatr%C3%A1ch)"
+    "wiki_url": "https://pl.wikipedia.org/wiki/Hawra%C5%84"
   },
   {
     "id": "hinczowa_turnia",
@@ -419,7 +419,7 @@
     "latitude": 49.1708218,
     "longitude": 20.0476171,
     "height": 2340,
-    "wiki_url": "https://sk.wikipedia.org/wiki/Hlinsk%C3%A1_ve%C5%BEa"
+    "wiki_url": "https://pl.wikipedia.org/wiki/Hli%C5%84ska_Turnia"
   },
   {
     "id": "hlinski_wierch",
@@ -442,7 +442,7 @@
     "latitude": 49.1813259,
     "longitude": 20.1301403,
     "height": 2086,
-    "wiki_url": "https://sk.wikipedia.org/wiki/Hrub%C3%A1_ve%C5%BEa"
+    "wiki_url": "https://pl.wikipedia.org/wiki/Hruba_Turnia"
   },
   {
     "id": "hruby_wierch",
@@ -450,7 +450,7 @@
     "latitude": 49.1707496,
     "longitude": 20.0270107,
     "height": 2428,
-    "wiki_url": "https://sk.wikipedia.org/wiki/Hrub%C3%BD_vrch_(Vysok%C3%A9_Tatry)"
+    "wiki_url": "https://pl.wikipedia.org/wiki/Hruby_Wierch"
   },
   {
     "id": "huncowski_szczyt",
@@ -458,7 +458,7 @@
     "latitude": 49.1979918,
     "longitude": 20.2251697,
     "height": 2352,
-    "wiki_url": "https://sk.wikipedia.org/wiki/Huncovsk%C3%BD_%C5%A1t%C3%ADt"
+    "wiki_url": "https://pl.wikipedia.org/wiki/Huncowski_Szczyt"
   },
   {
     "id": "igla_milowki",
@@ -482,7 +482,7 @@
     "latitude": 49.2196942,
     "longitude": 20.2081025,
     "height": 2229,
-    "wiki_url": "https://sk.wikipedia.org/wiki/Jah%C5%88ac%C3%AD_%C5%A1t%C3%ADt"
+    "wiki_url": "https://pl.wikipedia.org/wiki/Jagni%C4%99cy_Szczyt"
   },
   {
     "id": "jamska_kopa",
@@ -498,7 +498,7 @@
     "latitude": 49.2116356,
     "longitude": 20.2099221,
     "height": 2138,
-    "wiki_url": "https://sk.wikipedia.org/wiki/Jastrabia_ve%C5%BEa"
+    "wiki_url": "https://pl.wikipedia.org/wiki/Jastrz%C4%99bia_Turnia_(Tatry)"
   },
   {
     "id": "jaworowy_szczyt",
@@ -513,11 +513,11 @@
   },
   {
     "id": "jezova",
-    "nazwa": "Ježová",
+    "nazwa": "Jeżowa Kopa",
     "latitude": 49.1698273,
     "longitude": 19.8345478,
     "height": 2043,
-    "wiki_url": "https://sk.wikipedia.org/wiki/Je%C5%BEov%C3%A1_(vrch_v_Z%C3%A1padn%C3%BDch_Tatr%C3%A1ch)"
+    "wiki_url": "https://pl.wikipedia.org/wiki/Je%C5%BCowa_Kopa"
   },
   {
     "id": "juhaska_turnia",
@@ -537,11 +537,11 @@
   },
   {
     "id": "kaczy_szcyt",
-    "nazwa": "Kaczy Szcyt",
+    "nazwa": "Kaczy Szczyt",
     "latitude": 49.1659777,
     "longitude": 20.1202341,
     "height": 2401,
-    "wiki_url": "https://sk.wikipedia.org/wiki/Ka%C4%8Dac%C3%AD_%C5%A1t%C3%ADt"
+    "wiki_url": "https://pl.wikipedia.org/wiki/Kaczy_Szczyt"
   },
   {
     "id": "kamienista",
@@ -569,14 +569,14 @@
   },
   {
     "id": "kiezmarski_szczyt",
-    "nazwa": "Kieżmarski Szczyt (Kežmarský štít)",
+    "nazwa": "Kieżmarski Szczyt",
     "trudnosc": "Tylko z przewodnikiem",
     "trudnosc_wspinaczkowa": "0+",
     "latitude": 49.1992348,
     "longitude": 20.2194606,
     "height": 2556,
     "description_html": "Znany z potężnej południowej ściany.",
-    "wiki_url": "https://sk.wikipedia.org/wiki/Ke%C5%BEmarsk%C3%BD_%C5%A1t%C3%ADt"
+    "wiki_url": "https://pl.wikipedia.org/wiki/Kie%C5%BCmarski_Szczyt"
   },
   {
     "id": "klin",
@@ -607,7 +607,7 @@
     "latitude": 49.2108001,
     "longitude": 20.1989402,
     "height": 2418,
-    "wiki_url": "https://sk.wikipedia.org/wiki/Kolov%C3%BD_%C5%A1t%C3%ADt"
+    "wiki_url": "https://pl.wikipedia.org/wiki/Ko%C5%82owy_Szczyt"
   },
   {
     "id": "kominiarski_wierch",
@@ -619,14 +619,14 @@
   },
   {
     "id": "konczysta",
-    "nazwa": "Kończysta (Končistá)",
+    "nazwa": "Kończysta",
     "trudnosc": "Tylko z przewodnikiem",
     "trudnosc_wspinaczkowa": "I (na bloku szczytowym - 'Kowadło')",
     "latitude": 49.1573111,
     "longitude": 20.1140729,
     "height": 2536,
     "description_html": "Charakterystyczny wierzchołek z 'Kowadłem'.",
-    "wiki_url": "https://sk.wikipedia.org/wiki/Kon%C4%8Dist%C3%A1_(vrch_vo_Vysok%C3%BDch_Tatr%C3%A1ch)"
+    "wiki_url": "https://pl.wikipedia.org/wiki/Ko%C5%84czysta"
   },
   {
     "id": "kopa_kondracka",
@@ -665,7 +665,7 @@
     "latitude": 49.167778,
     "longitude": 20.083889,
     "height": 2354,
-    "wiki_url": "https://sk.wikipedia.org/wiki/K%C3%B4pky"
+    "wiki_url": "https://pl.wikipedia.org/wiki/Kopa_Popradzka"
   },
   {
     "id": "koprowa_kopa",
@@ -680,7 +680,7 @@
     "latitude": 49.182374,
     "longitude": 20.0482464,
     "height": 2367,
-    "wiki_url": "https://sk.wikipedia.org/wiki/K%C3%B4provsk%C3%BD_%C5%A1t%C3%ADt"
+    "wiki_url": "https://pl.wikipedia.org/wiki/Koprowy_Wierch"
   },
   {
     "id": "koscielec",
@@ -698,7 +698,7 @@
     "latitude": 49.1616247,
     "longitude": 20.1242864,
     "height": 2262,
-    "wiki_url": "https://sk.wikipedia.org/wiki/Kostol%C3%ADk"
+    "wiki_url": "https://pl.wikipedia.org/wiki/Ko%C5%9Bcio%C5%82ek"
   },
   {
     "id": "kotlova",
@@ -729,15 +729,15 @@
     "latitude": 49.2166534,
     "longitude": 20.2150277,
     "height": 2111,
-    "wiki_url": "https://sk.wikipedia.org/wiki/Koz%C3%AD_%C5%A1t%C3%ADt"
+    "wiki_url": "https://pl.wikipedia.org/wiki/Kozia_Turnia"
   },
   {
     "id": "kresany_roh",
-    "nazwa": "Kresaný roh",
+    "nazwa": "Krzesany Róg",
     "latitude": 49.1868385,
     "longitude": 20.1605802,
     "height": 2305,
-    "wiki_url": "https://sk.wikipedia.org/wiki/Kresan%C3%BD_roh"
+    "wiki_url": "https://pl.wikipedia.org/wiki/Krzesany_R%C3%B3g"
   },
   {
     "id": "krolewski_nos",
@@ -753,17 +753,17 @@
     "latitude": 49.1633052,
     "longitude": 20.0134093,
     "height": 2375,
-    "wiki_url": "https://sk.wikipedia.org/wiki/Kr%C3%A1tka_(vrch_vo_Vysok%C3%BDch_Tatr%C3%A1ch)"
+    "wiki_url": "https://pl.wikipedia.org/wiki/Kr%C3%B3tka"
   },
   {
     "id": "krywan",
-    "nazwa": "Krywań (Kriváň)",
+    "nazwa": "Krywań",
     "trudnosc": "Trudny (szlakowany)",
     "latitude": 49.1628335,
     "longitude": 20.0000452,
     "height": 2494,
     "description_html": "Narodowa góra Słowaków. Prowadzi na nią szlak turystyczny.",
-    "wiki_url": "https://sk.wikipedia.org/wiki/Kriv%C3%A1%C5%88_(vrch_v_Tatr%C3%A1ch)"
+    "wiki_url": "https://pl.wikipedia.org/wiki/Krywa%C5%84"
   },
   {
     "id": "krzesanica",
@@ -787,7 +787,7 @@
     "latitude": 49.167266,
     "longitude": 20.1312892,
     "height": 2606,
-    "wiki_url": "https://sk.wikipedia.org/wiki/Lav%C3%ADnov%C3%BD_%C5%A1t%C3%ADt"
+    "wiki_url": "https://pl.wikipedia.org/wiki/Lawinowy_Szczyt"
   },
   {
     "id": "liliowa_kopka",
@@ -818,29 +818,29 @@
     "latitude": 49.1711041,
     "longitude": 20.1297633,
     "height": 2423,
-    "wiki_url": "https://sk.wikipedia.org/wiki/Litvorov%C3%BD_%C5%A1t%C3%ADt"
+    "wiki_url": "https://pl.wikipedia.org/wiki/Litworowy_Szczyt"
   },
   {
     "id": "lodowa_kopa",
-    "nazwa": "Lodowa Kopa (Malý Ľadový štít)",
+    "nazwa": "Lodowa Kopa",
     "trudnosc": "Tylko z przewodnikiem / taternicko",
     "trudnosc_wspinaczkowa": "0+",
     "latitude": 49.1964482,
     "longitude": 20.1825885,
     "height": 2602,
     "description_html": "Niższy wierzchołek w masywie Lodowego Szczytu.",
-    "wiki_url": "https://sk.wikipedia.org/wiki/Mal%C3%BD_%C4%BDadov%C3%BD_%C5%A1t%C3%ADt"
+    "wiki_url": "https://pl.wikipedia.org/wiki/Lodowa_Kopa"
   },
   {
     "id": "lodowy_szczyt",
-    "nazwa": "Lodowy Szczyt (Ľadový štít)",
+    "nazwa": "Lodowy Szczyt",
     "trudnosc": "Tylko z przewodnikiem",
     "trudnosc_wspinaczkowa": "I (Droga Kapałkowych)",
     "latitude": 49.1985452,
     "longitude": 20.1827652,
     "height": 2628,
     "description_html": "Trzeci co do wysokości szczyt Tatr, potężna piramida lodowa.",
-    "wiki_url": "https://sk.wikipedia.org/wiki/%C4%BDadov%C3%BD_%C5%A1t%C3%ADt"
+    "wiki_url": "https://pl.wikipedia.org/wiki/Lodowy_Szczyt"
   },
   {
     "id": "lodowy_zwornik",
@@ -848,18 +848,18 @@
     "latitude": 49.2010833,
     "longitude": 20.18435,
     "height": 2512,
-    "wiki_url": "https://sk.wikipedia.org/wiki/Zadn%C3%BD_%C4%BDadov%C3%BD_%C5%A1t%C3%ADt"
+    "wiki_url": "https://pl.wikipedia.org/wiki/Lodowy_Zwornik"
   },
   {
     "id": "lomnica",
-    "nazwa": "Łomnica (Lomnický štít)",
+    "nazwa": "Łomnica",
     "trudnosc": "Tylko z przewodnikiem (lub kolejką)",
     "trudnosc_wspinaczkowa": "I (Droga Jordana)",
     "latitude": 49.1951431,
     "longitude": 20.2130329,
     "height": 2633,
     "description_html": "Drugi co do wysokości szczyt Tatr. Dostępny kolejką linową.",
-    "wiki_url": "https://sk.wikipedia.org/wiki/Lomnick%C3%BD_%C5%A1t%C3%ADt"
+    "wiki_url": "https://pl.wikipedia.org/wiki/%C5%81omnica_(Tatry)"
   },
   {
     "id": "mala_baszta",
@@ -867,7 +867,7 @@
     "latitude": 49.1557957,
     "longitude": 20.0575666,
     "height": 2288,
-    "wiki_url": "https://sk.wikipedia.org/wiki/Mal%C3%A1_Ba%C5%A1ta"
+    "wiki_url": "https://pl.wikipedia.org/wiki/Ma%C5%82a_Baszta"
   },
   {
     "id": "mala_buczynowa_turnia",
@@ -933,11 +933,11 @@
   },
   {
     "id": "mala_litvorova_veza",
-    "nazwa": "Malá Litvorová veža",
+    "nazwa": "Niżnia Wysoka Gerlachowska",
     "latitude": 49.1694631,
     "longitude": 20.1297225,
     "height": 2547,
-    "wiki_url": "https://sk.wikipedia.org/wiki/Mal%C3%A1_Litvorov%C3%A1_ve%C5%BEa"
+    "wiki_url": "https://pl.wikipedia.org/wiki/Ni%C5%BCnia_Wysoka_Gerlachowska"
   },
   {
     "id": "mala_orlia_vezicka",
@@ -969,7 +969,7 @@
     "latitude": 49.1752787,
     "longitude": 20.1454588,
     "height": 2429,
-    "wiki_url": "https://sk.wikipedia.org/wiki/V%C3%BDchodn%C3%A1_Vysok%C3%A1"
+    "wiki_url": "https://pl.wikipedia.org/wiki/Ma%C5%82a_Wysoka"
   },
   {
     "id": "male_krzyzne_liptowskie",
@@ -984,7 +984,7 @@
     "latitude": 49.1570613,
     "longitude": 20.0339557,
     "height": 2336,
-    "wiki_url": "https://sk.wikipedia.org/wiki/Mal%C3%A9_Solisko"
+    "wiki_url": "https://pl.wikipedia.org/wiki/Ma%C5%82e_Solisko"
   },
   {
     "id": "malolaczniak",
@@ -1000,7 +1000,7 @@
     "latitude": 49.1985112,
     "longitude": 20.2066329,
     "height": 2590,
-    "wiki_url": "https://sk.wikipedia.org/wiki/Mal%C3%BD_Py%C5%A1n%C3%BD_%C5%A1t%C3%ADt"
+    "wiki_url": "https://pl.wikipedia.org/wiki/Ma%C5%82y_Durny_Szczyt"
   },
   {
     "id": "maly_gerlach",
@@ -1008,7 +1008,7 @@
     "latitude": 49.1619981,
     "longitude": 20.1363213,
     "height": 2601,
-    "wiki_url": "https://sk.wikipedia.org/wiki/Kotlov%C3%BD_%C5%A1t%C3%ADt"
+    "wiki_url": "https://pl.wikipedia.org/wiki/Ma%C5%82y_Gerlach"
   },
   {
     "id": "maly_jaworowy_szczyt",
@@ -1016,7 +1016,7 @@
     "latitude": 49.1881863,
     "longitude": 20.1629305,
     "height": 2385,
-    "wiki_url": "https://sk.wikipedia.org/wiki/Mal%C3%BD_Javorov%C3%BD_%C5%A1t%C3%ADt"
+    "wiki_url": "https://pl.wikipedia.org/wiki/Ma%C5%82y_Jaworowy_Szczyt"
   },
   {
     "id": "maly_kiezmarski_szczyt",
@@ -1024,7 +1024,7 @@
     "latitude": 49.2006334,
     "longitude": 20.2204317,
     "height": 2513,
-    "wiki_url": "https://sk.wikipedia.org/wiki/Mal%C3%BD_Ke%C5%BEmarsk%C3%BD_%C5%A1t%C3%ADt"
+    "wiki_url": "https://pl.wikipedia.org/wiki/Ma%C5%82y_Kie%C5%BCmarski_Szczyt"
   },
   {
     "id": "maly_kolovy_stit",
@@ -1071,7 +1071,7 @@
     "latitude": 49.1899604,
     "longitude": 20.1827776,
     "height": 2461,
-    "wiki_url": "https://sk.wikipedia.org/wiki/%C5%A0irok%C3%A1_ve%C5%BEa"
+    "wiki_url": "https://pl.wikipedia.org/wiki/Ma%C5%82y_Lodowy_Szczyt"
   },
   {
     "id": "maly_mlynarz",
@@ -1099,11 +1099,11 @@
   },
   {
     "id": "mengusovsky_volovec",
-    "nazwa": "Mengusovský Volovec",
+    "nazwa": "Wołowiec Mięguszowiecki",
     "latitude": 49.1759435,
     "longitude": 20.0675358,
     "height": 2227,
-    "wiki_url": "https://sk.wikipedia.org/wiki/Mengusovsk%C3%BD_Volovec"
+    "wiki_url": "https://pl.wikipedia.org/wiki/Wo%C5%82owiec_Mi%C4%99guszowiecki"
   },
   {
     "id": "miedziane",
@@ -1160,11 +1160,11 @@
   },
   {
     "id": "mlynicke_solisko",
-    "nazwa": "Mlynické Solisko",
+    "nazwa": "Młynickie Solisko",
     "latitude": 49.1546077,
     "longitude": 20.0367016,
     "height": 2301,
-    "wiki_url": "https://sk.wikipedia.org/wiki/Mlynick%C3%A9_Solisko"
+    "wiki_url": "https://pl.wikipedia.org/wiki/M%C5%82ynickie_Solisko"
   },
   {
     "id": "mnich",
@@ -1196,7 +1196,7 @@
     "latitude": 49.2511155,
     "longitude": 20.1767849,
     "height": 1890,
-    "wiki_url": "https://sk.wikipedia.org/wiki/Mur%C3%A1%C5%88_(vrch_v_Tatr%C3%A1ch)"
+    "wiki_url": "https://pl.wikipedia.org/wiki/Mura%C5%84"
   },
   {
     "id": "murowany_koszar",
@@ -1231,11 +1231,11 @@
   },
   {
     "id": "nizna_bystra",
-    "nazwa": "Nižná Bystrá",
+    "nazwa": "Zadnia Kopa",
     "latitude": 49.1785822,
     "longitude": 19.8306649,
     "height": 2162,
-    "wiki_url": "https://sk.wikipedia.org/wiki/Ni%C5%BEn%C3%A1_Bystr%C3%A1"
+    "wiki_url": "https://pl.wikipedia.org/wiki/Zadnia_Kopa"
   },
   {
     "id": "nizni_kostur",
@@ -1274,7 +1274,7 @@
     "latitude": 49.25033,
     "longitude": 20.1873852,
     "height": 1999,
-    "wiki_url": "https://sk.wikipedia.org/wiki/Nov%C3%BD_(vrch_v_Tatr%C3%A1ch)"
+    "wiki_url": "https://pl.wikipedia.org/wiki/Nowy_Wierch"
   },
   {
     "id": "opalony_wierch",
@@ -1306,15 +1306,15 @@
     "latitude": 49.1499103,
     "longitude": 20.0899777,
     "height": 1984,
-    "wiki_url": "https://sk.wikipedia.org/wiki/Ostrva"
+    "wiki_url": "https://pl.wikipedia.org/wiki/Osterwa"
   },
   {
     "id": "ostra",
-    "nazwa": "Ostrá",
+    "nazwa": "Ostra",
     "latitude": 49.16385,
     "longitude": 20.0218067,
     "height": 2351,
-    "wiki_url": "https://cs.wikipedia.org/wiki/Ostr%C3%A1_(Vysok%C3%A9_Tatry)"
+    "wiki_url": "https://pl.wikipedia.org/wiki/Ostra_(Tatry_Wysokie)"
   },
   {
     "id": "ostry_szczyt",
@@ -1322,7 +1322,7 @@
     "latitude": 49.1887966,
     "longitude": 20.1763165,
     "height": 2367,
-    "wiki_url": "https://sk.wikipedia.org/wiki/Ostr%C3%BD_%C5%A1t%C3%ADt"
+    "wiki_url": "https://pl.wikipedia.org/wiki/Ostry_Szczyt"
   },
   {
     "id": "owcze_turniczki",
@@ -1354,7 +1354,7 @@
     "latitude": 49.1908765,
     "longitude": 20.1913261,
     "height": 2201,
-    "wiki_url": "https://sk.wikipedia.org/wiki/Pfinnova_kopa"
+    "wiki_url": "https://pl.wikipedia.org/wiki/Pi%C4%99ciostawia%C5%84ska_Kopa"
   },
   {
     "id": "piekielnikowa_turnia",
@@ -1369,7 +1369,7 @@
     "latitude": 49.2448029,
     "longitude": 20.2070795,
     "height": 2142,
-    "wiki_url": "https://sk.wikipedia.org/wiki/%C5%BDdiarska_vidla"
+    "wiki_url": "https://pl.wikipedia.org/wiki/P%C5%82aczliwa_Ska%C5%82a"
   },
   {
     "id": "ponad_ogrod_turnia",
@@ -1377,15 +1377,15 @@
     "latitude": 49.1602134,
     "longitude": 20.1422442,
     "height": 2433,
-    "wiki_url": "https://sk.wikipedia.org/wiki/Kvetnicov%C3%A1_ve%C5%BEa"
+    "wiki_url": "https://pl.wikipedia.org/wiki/Ponad_Ogr%C3%B3d_Turnia"
   },
   {
     "id": "posledna_veza",
-    "nazwa": "Posledná veža",
+    "nazwa": "Poślednia Turnia",
     "latitude": 49.1959755,
     "longitude": 20.2096597,
     "height": 2560,
-    "wiki_url": "https://sk.wikipedia.org/wiki/Posledn%C3%A1_ve%C5%BEa"
+    "wiki_url": "https://pl.wikipedia.org/wiki/Po%C5%9Blednia_Turnia"
   },
   {
     "id": "posredni_gerlach",
@@ -1393,7 +1393,7 @@
     "latitude": 49.1636557,
     "longitude": 20.1350113,
     "height": 2642,
-    "wiki_url": "https://sk.wikipedia.org/wiki/Gerlachovsk%C3%A1_ve%C5%BEa"
+    "wiki_url": "https://pl.wikipedia.org/wiki/Po%C5%9Bredni_Gerlach"
   },
   {
     "id": "posredni_goryczkowy_wierch",
@@ -1435,14 +1435,14 @@
   },
   {
     "id": "posrednia_gran",
-    "nazwa": "Pośrednia Grań (Prostredný hrot)",
+    "nazwa": "Pośrednia Grań",
     "trudnosc": "Tylko z przewodnikiem",
     "trudnosc_wspinaczkowa": "I / II",
     "latitude": 49.1849785,
     "longitude": 20.1943573,
     "height": 2441,
     "description_html": "Najniższy szczyt WKT, ale bardzo wymagający.",
-    "wiki_url": "https://sk.wikipedia.org/wiki/Prostredn%C3%BD_hrot"
+    "wiki_url": "https://pl.wikipedia.org/wiki/Po%C5%9Brednia_Gra%C5%84"
   },
   {
     "id": "posrednia_magura_rycerowa",
@@ -1503,7 +1503,7 @@
     "latitude": 49.2333044,
     "longitude": 20.248995,
     "height": 1984,
-    "wiki_url": "https://sk.wikipedia.org/wiki/Prostredn%C3%A9_Jatky"
+    "wiki_url": "https://pl.wikipedia.org/wiki/Po%C5%9Brednie_Jatki"
   },
   {
     "id": "predna_javorova_veza",
@@ -1530,11 +1530,11 @@
   },
   {
     "id": "prostredne_solisko",
-    "nazwa": "Prostredné Solisko",
+    "nazwa": "Pośrednie Solisko",
     "latitude": 49.1617301,
     "longitude": 20.0324485,
     "height": 2400,
-    "wiki_url": "https://sk.wikipedia.org/wiki/Prostredn%C3%A9_Solisko"
+    "wiki_url": "https://pl.wikipedia.org/wiki/Po%C5%9Brednie_Solisko"
   },
   {
     "id": "prostredny_granat",
@@ -1550,7 +1550,7 @@
     "latitude": 49.2049298,
     "longitude": 20.2370981,
     "height": 2037,
-    "wiki_url": "https://sk.wikipedia.org/wiki/Ve%C4%BEk%C3%A1_Svi%C5%A1%C5%A5ovka"
+    "wiki_url": "https://pl.wikipedia.org/wiki/Rakuska_Czuba"
   },
   {
     "id": "rowienkowa_turnia",
@@ -1558,7 +1558,7 @@
     "latitude": 49.1864562,
     "longitude": 20.1594374,
     "height": 2272,
-    "wiki_url": "https://sk.wikipedia.org/wiki/Rovienkov%C3%A1_ve%C5%BEa"
+    "wiki_url": "https://pl.wikipedia.org/wiki/R%C3%B3wienkowa_Turnia"
   },
   {
     "id": "rozpadla_kopa",
@@ -1574,7 +1574,7 @@
     "latitude": 49.1728175,
     "longitude": 20.1056479,
     "height": 2428,
-    "wiki_url": "https://sk.wikipedia.org/wiki/Rumanov_%C5%A1t%C3%ADt"
+    "wiki_url": "https://pl.wikipedia.org/wiki/Rumanowy_Szczyt"
   },
   {
     "id": "rycerowa_kopa",
@@ -1591,7 +1591,7 @@
     "longitude": 20.0884638,
     "height": 2501,
     "description_html": "Najwyższy szczyt Polski. Wymagający szlak z łańcuchami.",
-    "wiki_url": "https://sk.wikipedia.org/wiki/Rysy_(vrch)"
+    "wiki_url": "https://pl.wikipedia.org/wiki/Rysy"
   },
   {
     "id": "siarkan",
@@ -1599,7 +1599,7 @@
     "latitude": 49.1680322,
     "longitude": 20.0937086,
     "height": 2254,
-    "wiki_url": "https://sk.wikipedia.org/wiki/Dra%C4%8Dia_hlava"
+    "wiki_url": "https://pl.wikipedia.org/wiki/Siarkan"
   },
   {
     "id": "sienna_kopa",
@@ -1607,7 +1607,7 @@
     "latitude": 49.1557615,
     "longitude": 20.1770866,
     "height": 1848,
-    "wiki_url": "https://sk.wikipedia.org/wiki/Senn%C3%A1_kopa"
+    "wiki_url": "https://pl.wikipedia.org/wiki/Sienna_Kopa"
   },
   {
     "id": "siodelkowa_kopa",
@@ -1615,7 +1615,7 @@
     "latitude": 49.150897,
     "longitude": 20.0210154,
     "height": 2062,
-    "wiki_url": "https://sk.wikipedia.org/wiki/Sedielkov%C3%A1_kopa"
+    "wiki_url": "https://pl.wikipedia.org/wiki/Siode%C5%82kowa_Kopa"
   },
   {
     "id": "skrajna_baszta",
@@ -1623,7 +1623,7 @@
     "latitude": 49.1522669,
     "longitude": 20.0583007,
     "height": 2202,
-    "wiki_url": "https://sk.wikipedia.org/wiki/Patria_(vrch_vo_Vysok%C3%BDch_Tatr%C3%A1ch)"
+    "wiki_url": "https://pl.wikipedia.org/wiki/Skrajna_Baszta"
   },
   {
     "id": "skrajna_bednarzowa_turnia",
@@ -1690,7 +1690,7 @@
     "latitude": 49.2309281,
     "longitude": 20.2517983,
     "height": 2012,
-    "wiki_url": "https://sk.wikipedia.org/wiki/Predn%C3%A9_Jatky"
+    "wiki_url": "https://pl.wikipedia.org/wiki/Skrajne_Jatki"
   },
   {
     "id": "skrajne_solisko",
@@ -1698,7 +1698,7 @@
     "latitude": 49.1496445,
     "longitude": 20.039063,
     "height": 2117,
-    "wiki_url": "https://sk.wikipedia.org/wiki/Predn%C3%A9_Solisko"
+    "wiki_url": "https://pl.wikipedia.org/wiki/Skrajne_Solisko"
   },
   {
     "id": "skrajny_goly_wierch_liptowski",
@@ -1718,21 +1718,21 @@
   },
   {
     "id": "slavkovska_kopa",
-    "nazwa": "Slavkovská kopa",
+    "nazwa": "Sławkowska Kopa",
     "latitude": 49.1678768,
     "longitude": 20.1786279,
     "height": 2346,
-    "wiki_url": "https://sk.wikipedia.org/wiki/Slavkovsk%C3%A1_kopa"
+    "wiki_url": "https://pl.wikipedia.org/wiki/S%C5%82awkowska_Kopa"
   },
   {
     "id": "slawkowski_szczyt",
-    "nazwa": "Sławkowski Szczyt (Slavkovský štít)",
+    "nazwa": "Sławkowski Szczyt",
     "trudnosc": "Trudny (szlakowany)",
     "latitude": 49.1660785,
     "longitude": 20.1845921,
     "height": 2452,
     "description_html": "Jeden z najłatwiej dostępnych szczytów WKT, prowadzi na niego szlak.",
-    "wiki_url": "https://sk.wikipedia.org/wiki/Slavkovsk%C3%BD_%C5%A1t%C3%ADt"
+    "wiki_url": "https://pl.wikipedia.org/wiki/S%C5%82awkowski_Szczyt"
   },
   {
     "id": "smreczynski_wierch",
@@ -1756,7 +1756,7 @@
     "latitude": 49.2023441,
     "longitude": 20.1864064,
     "height": 2464,
-    "wiki_url": "https://sk.wikipedia.org/wiki/Snehov%C3%BD_%C5%A1t%C3%ADt"
+    "wiki_url": "https://pl.wikipedia.org/wiki/%C5%9Anie%C5%BCny_Szczyt"
   },
   {
     "id": "spadowa_kopa",
@@ -1772,7 +1772,7 @@
     "latitude": 49.1991165,
     "longitude": 20.2014494,
     "height": 2483,
-    "wiki_url": "https://sk.wikipedia.org/wiki/Spi%C5%A1sk%C3%BD_%C5%A1t%C3%ADt"
+    "wiki_url": "https://pl.wikipedia.org/wiki/Spiska_Grz%C4%99da"
   },
   {
     "id": "spismichalowa_czuba",
@@ -1784,22 +1784,22 @@
   },
   {
     "id": "starolesny_szczyt",
-    "nazwa": "Staroleśny Szczyt (Bradavica)",
+    "nazwa": "Staroleśny Szczyt",
     "trudnosc": "Tylko z przewodnikiem",
     "trudnosc_wspinaczkowa": "I / II",
     "latitude": 49.1713376,
     "longitude": 20.1556776,
     "height": 2489,
     "description_html": "Strzelisty, czterowierzchołkowy szczyt.",
-    "wiki_url": "https://sk.wikipedia.org/wiki/Bradavica_(vrch_vo_Vysok%C3%BDch_Tatr%C3%A1ch)"
+    "wiki_url": "https://pl.wikipedia.org/wiki/Starole%C5%9Bny_Szczyt"
   },
   {
     "id": "strelecka_veza",
-    "nazwa": "Strelecká veža",
+    "nazwa": "Strzelecka Turnia",
     "latitude": 49.182439,
     "longitude": 20.179407,
     "height": 2130,
-    "wiki_url": "https://sk.wikipedia.org/wiki/Streleck%C3%A1_ve%C5%BEa"
+    "wiki_url": "https://pl.wikipedia.org/wiki/Strzelecka_Turnia"
   },
   {
     "id": "stwolska_turnia",
@@ -1890,7 +1890,7 @@
     "latitude": 49.2368435,
     "longitude": 20.2203458,
     "height": 2061,
-    "wiki_url": "https://sk.wikipedia.org/wiki/Hl%C3%BApy_(vrch_v_Tatr%C3%A1ch)"
+    "wiki_url": "https://pl.wikipedia.org/wiki/Szalony_Wierch"
   },
   {
     "id": "szatan",
@@ -1909,7 +1909,7 @@
     "latitude": 49.1707076,
     "longitude": 20.041321,
     "height": 2381,
-    "wiki_url": "https://sk.wikipedia.org/wiki/%C5%A0trbsk%C3%BD_%C5%A1t%C3%ADt"
+    "wiki_url": "https://pl.wikipedia.org/wiki/Szczyrbski_Szczyt"
   },
   {
     "id": "szczyrbskie_solisko",
@@ -1917,7 +1917,7 @@
     "latitude": 49.1552021,
     "longitude": 20.0356308,
     "height": 2302,
-    "wiki_url": "https://sk.wikipedia.org/wiki/%C5%A0trbsk%C3%A9_Solisko"
+    "wiki_url": "https://pl.wikipedia.org/wiki/Szczyrbskie_Solisko"
   },
   {
     "id": "szeroka_jaworzynska",
@@ -1925,7 +1925,7 @@
     "latitude": 49.2090171,
     "longitude": 20.1371475,
     "height": 2210,
-    "wiki_url": "https://sk.wikipedia.org/wiki/%C5%A0irok%C3%A1_(vrch_vo_Vysok%C3%BDch_Tatr%C3%A1ch)"
+    "wiki_url": "https://pl.wikipedia.org/wiki/Szeroka_Jaworzy%C5%84ska"
   },
   {
     "id": "szpiglasowy_wierch",
@@ -1949,7 +1949,7 @@
     "latitude": 49.1535074,
     "longitude": 20.1017938,
     "height": 2284,
-    "wiki_url": "https://sk.wikipedia.org/wiki/Tup%C3%A1_(vrch_vo_Vysok%C3%BDch_Tatr%C3%A1ch)"
+    "wiki_url": "https://pl.wikipedia.org/wiki/T%C4%99pa"
   },
   {
     "id": "tomanowa_kopa",
@@ -2016,11 +2016,11 @@
   },
   {
     "id": "usata_veza",
-    "nazwa": "Ušatá veža",
+    "nazwa": "Złota Turnia",
     "latitude": 49.2019974,
     "longitude": 20.2174429,
     "height": 2265,
-    "wiki_url": "https://sk.wikipedia.org/wiki/U%C5%A1at%C3%A1_ve%C5%BEa"
+    "wiki_url": "https://pl.wikipedia.org/wiki/Z%C5%82ota_Turnia"
   },
   {
     "id": "velka_garajova_kopa",
@@ -2047,11 +2047,11 @@
   },
   {
     "id": "vychodny_zelezny_stit",
-    "nazwa": "Východný železný štít",
+    "nazwa": "Wschodni Żelazny Szczyt",
     "latitude": 49.1673912,
     "longitude": 20.1137473,
     "height": 2340,
-    "wiki_url": "https://sk.wikipedia.org/wiki/V%C3%BDchodn%C3%BD_%C5%BDelezn%C3%BD_%C5%A1t%C3%ADt"
+    "wiki_url": "https://pl.wikipedia.org/wiki/Wschodni_%C5%BBelazny_Szczyt"
   },
   {
     "id": "vysna_priehyba",
@@ -2098,7 +2098,7 @@
     "latitude": 49.1739411,
     "longitude": 20.1345904,
     "height": 2319,
-    "wiki_url": "https://sk.wikipedia.org/wiki/Velick%C3%BD_%C5%A1t%C3%ADt"
+    "wiki_url": "https://pl.wikipedia.org/wiki/Wielicki_Szczyt"
   },
   {
     "id": "wielka_brdarowa_grapa",
@@ -2213,11 +2213,11 @@
   },
   {
     "id": "wielki_mlynarz",
-    "nazwa": "Wielki Młynarz",
+    "nazwa": "Młynarz",
     "latitude": 49.1934157,
     "longitude": 20.1026067,
     "height": 2170,
-    "wiki_url": "https://sk.wikipedia.org/wiki/Mlyn%C3%A1r_(vrch)"
+    "wiki_url": "https://pl.wikipedia.org/wiki/M%C5%82ynarz_(Tatry)"
   },
   {
     "id": "wielki_szczyt_widel",
@@ -2322,7 +2322,7 @@
     "latitude": 49.1785869,
     "longitude": 20.0793064,
     "height": 2291,
-    "wiki_url": "https://sk.wikipedia.org/wiki/%C5%BDab%C3%AD_k%C3%B4%C5%88"
+    "wiki_url": "https://pl.wikipedia.org/wiki/%C5%BBabi_Ko%C5%84"
   },
   {
     "id": "zabi_mnich",
@@ -2392,7 +2392,7 @@
     "latitude": 49.1662301,
     "longitude": 20.1314792,
     "height": 2616,
-    "wiki_url": "https://sk.wikipedia.org/wiki/Zadn%C3%BD_Gerlach"
+    "wiki_url": "https://pl.wikipedia.org/wiki/Zadni_Gerlach"
   },
   {
     "id": "zadni_koscielec",
@@ -2482,7 +2482,7 @@
     "latitude": 49.2371324,
     "longitude": 20.2329345,
     "height": 2020,
-    "wiki_url": "https://sk.wikipedia.org/wiki/Zadn%C3%A9_Jatky"
+    "wiki_url": "https://pl.wikipedia.org/wiki/Zadnie_Jatki"
   },
   {
     "id": "zadny_granat",
@@ -2521,7 +2521,7 @@
     "latitude": 49.1701459,
     "longitude": 20.1077775,
     "height": 2426,
-    "wiki_url": "https://sk.wikipedia.org/wiki/Zlobiv%C3%A1"
+    "wiki_url": "https://pl.wikipedia.org/wiki/%C5%BB%C5%82obisty_Szczyt"
   },
   {
     "id": "zlomiska_turnia",
@@ -2537,7 +2537,7 @@
     "latitude": 49.1659001,
     "longitude": 20.115564,
     "height": 2396,
-    "wiki_url": "https://sk.wikipedia.org/wiki/Popradsk%C3%BD_%C4%BDadov%C3%BD_%C5%A1t%C3%ADt"
+    "wiki_url": "https://pl.wikipedia.org/wiki/Zmarz%C5%82y_Szczyt"
   },
   {
     "id": "zmrzla_veza",
@@ -2553,7 +2553,7 @@
     "latitude": 49.1872158,
     "longitude": 20.1959924,
     "height": 2182,
-    "wiki_url": "https://sk.wikipedia.org/wiki/%C5%BDlt%C3%A1_stena"
+    "wiki_url": "https://pl.wikipedia.org/wiki/%C5%BB%C3%B3%C5%82ta_%C5%9Aciana"
   },
   {
     "id": "zolta_turnia",
@@ -2569,7 +2569,7 @@
     "latitude": 49.1856529,
     "longitude": 20.1906671,
     "height": 2385,
-    "wiki_url": "https://sk.wikipedia.org/wiki/%C5%BDlt%C3%A1_ve%C5%BEa"
+    "wiki_url": "https://pl.wikipedia.org/wiki/%C5%BB%C3%B3%C5%82ty_Szczyt"
   },
   {
     "id": "zwalista_turnia",
