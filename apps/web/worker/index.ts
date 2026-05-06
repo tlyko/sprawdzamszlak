@@ -17,7 +17,7 @@
 //               │
 //               └─ Worker.fetch()
 //                    ├─ /api/* → fetch() upstream API GW (legacy execute-api URL)
-//                    ├─ /trasy/<slug>/ + /szczyty/<slug>/ → ASSETS.fetch(_shells/*.html)
+//                    ├─ /trasy/<slug>/ + /szczyty/<slug>/ → ASSETS.fetch(_shells/<route>)
 //                    └─ else   → env.ASSETS.fetch(req) → Next static export
 //
 // Why the SPA rewrite lives here, not in `_redirects`:
@@ -33,11 +33,22 @@
 const API_GW_BASE = 'https://akoz890bg6.execute-api.eu-west-1.amazonaws.com/prod';
 const API_PROXY_TIMEOUT_MS = 15_000;
 
-// Source path prefix → static shell to serve on direct visits.
-// Postbuild script `apps/web/scripts/copy-spa-shells.mjs` puts the shells here.
+// Source path prefix → canonical asset URL to fetch via env.ASSETS.
+//
+// Note: NO trailing `.html`. CF Workers Static Assets normalises `.html`
+// URLs by issuing a 307 redirect to the no-extension form (so external
+// `/_shells/szczyty.html` → 307 → `/_shells/szczyty`). If the Worker
+// fetches the `.html` URL via env.ASSETS.fetch it gets that 307 back
+// and forwards it to the browser — losing the slug. Fetching the
+// no-extension URL returns the shell body as 200 directly.
+//
+// Postbuild script `apps/web/scripts/copy-spa-shells.mjs` puts the
+// shells on disk as `/_shells/<route>.html`; both URLs serve the same
+// file content per CF normalization, but only the no-extension form
+// returns 200 from env.ASSETS.
 const SHELL_REWRITES: Record<string, string> = {
-  '/trasy/': '/_shells/trasy.html',
-  '/szczyty/': '/_shells/szczyty.html',
+  '/trasy/': '/_shells/trasy',
+  '/szczyty/': '/_shells/szczyty',
 };
 
 interface Env {
