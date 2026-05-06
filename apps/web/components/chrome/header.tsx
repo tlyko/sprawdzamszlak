@@ -1,15 +1,19 @@
 import Link from "next/link";
 
 /*
- * One-line header — site name in serif on the left, three text links on the
- * right. No logo, no nav drawer, no announcement bar. The 56px height is
- * mirrored as --header-h in globals.css so the map can size itself relative
- * to the chrome (PR 1 keeps TatraMap.tsx untouched).
+ * Header — site name in serif, nav links in mono.
  *
- * /o-projekcie is intentionally not yet a route — that page lands in PR 5.
- * The link is here because the chrome inventory should be stable from PR 1
- * on; clicking it produces a 404 for now, which is acceptable for a single-
- * user site mid-build. Move to the proper page when PR 5 lands.
+ * Layout:
+ *   - viewport ≥420px: single row (logo left, nav right). The 56px
+ *     --header-h in globals.css is sized for this layout.
+ *   - viewport <420px (small phones — SE, narrow Android): 2-row layout
+ *     (logo top, nav row 2). --header-h bumps to 84px via a media query
+ *     so the map and other --header-h-anchored slots resize correctly.
+ *
+ * Why 2-row instead of a hamburger: the nav has 5 short items that fit
+ * fine on two rows, and a hamburger would force one extra tap to reach
+ * any chrome destination on every small-phone visit. The 2-row layout
+ * also keeps the chrome typography consistent across viewports.
  */
 
 type NavItem = {
@@ -33,11 +37,11 @@ export function Header() {
       className="border-b border-hairline bg-surface-1/95 backdrop-blur-sm sticky top-0 z-[1100]"
       style={{ height: "var(--header-h)" }}
     >
-      <div className="mx-auto flex h-full max-w-[1400px] items-center justify-between px-4 sm:px-6">
+      <div className="mx-auto flex h-full max-w-[1400px] flex-col items-start justify-center gap-1 px-4 min-[420px]:flex-row min-[420px]:items-center min-[420px]:justify-between min-[420px]:gap-0 sm:px-6">
         <Link
           href="/"
           // Mark as serif via the Fraunces variable wired in app/layout.tsx.
-          className="font-serif text-[17px] sm:text-[20px] tracking-tight text-ink-1 hover:text-accent transition-colors duration-200 mr-3"
+          className="font-serif text-[17px] sm:text-[20px] tracking-tight text-ink-1 hover:text-accent transition-colors duration-200 min-[420px]:mr-3"
           aria-label="sprawdzamszlak.pl — strona główna"
         >
           sprawdzamszlak
