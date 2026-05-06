@@ -28,6 +28,7 @@ import { TripDetailPanel } from "./trip-detail-panel";
 import { extractTripMeta } from "./extract-trip-meta";
 import { FilterPills } from "./filter-pills";
 import { findPeakByTrailName } from "./match-peak";
+import { PeakSearch } from "@/components/peak-search/peak-search";
 import {
   groupTrailsByYear,
   type LogbookFilter,
@@ -45,6 +46,11 @@ interface TripListProps {
   peaks?: Peak[];
   selectedTripId: string | null;
   onSelect: (trailId: string | null) => void;
+  // Optional — when provided, renders a peak search bar above the dziennik
+  // header. Search results dispatch a focus request to the map (fly + open
+  // popup). Decoupled from `onSelect` because peaks and trails are separate
+  // selection axes.
+  onSelectPeak?: (peakId: string) => void;
   isLoading: boolean;
 }
 
@@ -54,6 +60,7 @@ export function TripList({
   peaks,
   selectedTripId,
   onSelect,
+  onSelectPeak,
   isLoading,
 }: TripListProps) {
   const [filter, setFilter] = useState<LogbookFilter>("all");
@@ -141,6 +148,9 @@ export function TripList({
       aria-label="Lista tras"
       className="flex h-full flex-col bg-surface-1"
     >
+      {onSelectPeak && peaks && peaks.length > 0 ? (
+        <PeakSearch peaks={peaks} onSelectPeak={onSelectPeak} />
+      ) : null}
       {/* Column header: small caps, paper-style. The label is intentionally
           terse — the chrome already says what the site is. */}
       <header className="flex items-baseline justify-between gap-3 border-b border-hairline px-5 py-4">

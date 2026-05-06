@@ -26,7 +26,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { TripList } from "@/components/logbook/trip-list";
 import { useTripData } from "@/components/logbook/use-trip-data";
@@ -52,6 +52,16 @@ export default function Home() {
   const { peaks, trails, trailGeoData, isLoading } = useTripData();
   const [selectedTripId, setSelectedTripId] = useState<string | null>(null);
   const [selectedPeakId, setSelectedPeakId] = useState<string | null>(null);
+  // Focus-request counter: bumping this re-runs the map's FlyToSelectedPeak
+  // even when `selectedPeakId` doesn't change. Needed so the peak-search
+  // dropdown can re-fly to the same peak after the user's panned the map
+  // away (a clean state value alone wouldn't tick the effect's deps).
+  const [peakFocusKey, setPeakFocusKey] = useState(0);
+
+  const requestPeakFocus = useCallback((peakId: string) => {
+    setSelectedPeakId(peakId);
+    setPeakFocusKey((k) => k + 1);
+  }, []);
 
   // One-shot deep-link from `?trip=<id>` — wired so /korona-tatr/ can
   // hand off a bagged peak's trail to this page (clicking a bagged peak
@@ -97,12 +107,12 @@ export default function Home() {
     if (!peakId || !peaks.some((p) => p.id === peakId)) return;
     let cancelled = false;
     queueMicrotask(() => {
-      if (!cancelled) setSelectedPeakId(peakId);
+      if (!cancelled) requestPeakFocus(peakId);
     });
     return () => {
       cancelled = true;
     };
-  }, [peaks]);
+  }, [peaks, requestPeakFocus]);
 
   return (
     <main
@@ -130,6 +140,7 @@ export default function Home() {
           selectedTripId={selectedTripId}
           onTripSelect={setSelectedTripId}
           selectedPeakId={selectedPeakId}
+          peakFocusKey={peakFocusKey}
         />
       </section>
 
@@ -143,6 +154,7 @@ export default function Home() {
           peaks={peaks}
           selectedTripId={selectedTripId}
           onSelect={setSelectedTripId}
+          onSelectPeak={requestPeakFocus}
           isLoading={isLoading}
         />
       </div>

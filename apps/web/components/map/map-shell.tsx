@@ -59,6 +59,11 @@ export interface MapShellProps {
   // to the peak and open its popup. Decoupled from selectedTripId because
   // a peak focus doesn't imply a trail focus.
   selectedPeakId?: string | null;
+  // Bumped each time the page wants to re-trigger a fly-to even if the
+  // peak id hasn't changed (e.g. user clicks the same peak in PeakSearch
+  // after panning the map). The fly effect lists this in its deps so the
+  // refly happens on the bump alone.
+  peakFocusKey?: number;
 }
 
 // Zoom we fly to when a peak is deep-linked. Tier "low" markers only show
@@ -183,9 +188,11 @@ function FlyToSelected({
 function FlyToSelectedPeak({
   peaks,
   selectedPeakId,
+  focusKey,
 }: {
   peaks: Peak[];
   selectedPeakId: string | null | undefined;
+  focusKey: number;
 }) {
   const map = useMap();
 
@@ -207,7 +214,9 @@ function FlyToSelectedPeak({
     } else {
       map.flyTo(target, PEAK_FOCUS_ZOOM, { duration: FLY_TO_DURATION_S });
     }
-  }, [map, peaks, selectedPeakId]);
+    // focusKey is intentionally in the dep list — it's how the parent asks
+    // for a refly when the peak id is unchanged.
+  }, [map, peaks, selectedPeakId, focusKey]);
 
   return null;
 }
@@ -219,6 +228,7 @@ export function MapShell({
   selectedTripId = null,
   onTripSelect,
   selectedPeakId = null,
+  peakFocusKey = 0,
 }: MapShellProps) {
   const [zoom, setZoom] = useState(DEFAULT_ZOOM);
 
@@ -251,7 +261,11 @@ export function MapShell({
         trailGeoData={trailGeoData}
         selectedTripId={selectedTripId}
       />
-      <FlyToSelectedPeak peaks={peaks} selectedPeakId={selectedPeakId} />
+      <FlyToSelectedPeak
+        peaks={peaks}
+        selectedPeakId={selectedPeakId}
+        focusKey={peakFocusKey}
+      />
 
       <TrailOverlay
         manifest={trails}
