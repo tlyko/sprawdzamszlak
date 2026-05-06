@@ -40,7 +40,8 @@
   --success: #7fa177;
 
   /* Chrome geometry — used by globals.css to size the map area without
-     touching TatraMap.tsx (PR 1 constraint). */
+     touching TatraMap.tsx (PR 1 constraint). The narrow-viewport bump
+     below covers the 2-row mobile header (logo top, nav row 2). */
   --header-h: 56px;
   --footer-h: 40px;
 
@@ -53,6 +54,15 @@
   --text-2xl:   31px;
   --text-3xl:   39px;
   --text-4xl:   49px;
+}
+
+/* Narrow phones (≤419px — SE-class) get a 2-row header (logo top, nav
+   row 2). Header.tsx switches to flex-col below 420px; the chrome
+   needs taller --header-h here so the nav doesn't clip the page body. */
+@media (max-width: 419.98px) {
+  :root {
+    --header-h: 84px;
+  }
 }
 
 /*
