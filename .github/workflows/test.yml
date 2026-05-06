@@ -1,13 +1,15 @@
 name: Test
 
 # Unit tests (vitest). No AWS creds, no Terraform — fast and ground-truth.
-# Currently covers apps/api; packages/shared schema tests can land here later
-# without further config (vitest config lives in apps/api/vitest.config.ts).
+# Covers apps/api (vitest config in apps/api/vitest.config.ts) and apps/web
+# (apps/web/vitest.config.mts). packages/shared schema tests can land in
+# either package without further config.
 
 on:
   pull_request:
     paths:
       - 'apps/api/**'
+      - 'apps/web/**'
       - 'packages/shared/**'
       - 'pnpm-lock.yaml'
       - '.github/workflows/test.yml'
@@ -15,6 +17,7 @@ on:
     branches: [main]
     paths:
       - 'apps/api/**'
+      - 'apps/web/**'
       - 'packages/shared/**'
       - 'pnpm-lock.yaml'
       - '.github/workflows/test.yml'
@@ -43,3 +46,6 @@ jobs:
 
       - name: Run apps/api tests
         run: corepack pnpm -F '@sprawdzamszlak/api' test
+
+      - name: Run apps/web tests
+        run: corepack pnpm -F sprawdzamszlak-frontend test
