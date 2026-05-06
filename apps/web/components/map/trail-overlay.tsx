@@ -76,6 +76,10 @@ interface TrailOverlayProps {
   // Optional callback when a trail is clicked — PR 3's logbook uses this to
   // open the corresponding row.
   onTrailClick?: (trailId: string) => void;
+  // Current map zoom — drives zoom-aware stroke weight in trail-style.ts.
+  // Optional so callers that don't track zoom (one-off renderers, tests) keep
+  // the default scale.
+  zoom?: number;
 }
 
 export function TrailOverlay({
@@ -83,6 +87,7 @@ export function TrailOverlay({
   geoData,
   selectedTrailId = null,
   onTrailClick,
+  zoom,
 }: TrailOverlayProps) {
   // Pair (trail, geojson) by index. The fetch order in MapShell matches the
   // manifest order, so this is safe — but we filter out misaligned/missing
@@ -107,6 +112,7 @@ export function TrailOverlay({
           isSelected={selectedTrailId === trail.id}
           isDimmed={selectedTrailId !== null && selectedTrailId !== trail.id}
           onTrailClick={onTrailClick}
+          zoom={zoom}
         />
       ))}
     </>
@@ -119,6 +125,7 @@ interface TrailLayerProps {
   isSelected: boolean;
   isDimmed: boolean;
   onTrailClick: ((trailId: string) => void) | undefined;
+  zoom: number | undefined;
 }
 
 function TrailLayer({
@@ -127,6 +134,7 @@ function TrailLayer({
   isSelected,
   isDimmed,
   onTrailClick,
+  zoom,
 }: TrailLayerProps) {
   // Hold a ref to the underlying Leaflet layer group so we can re-style it
   // when isSelected / isDimmed flips without rebuilding the GeoJSON layer.
@@ -135,21 +143,26 @@ function TrailLayer({
   // path.)
   const layerRef = useRef<LeafletGeoJSON | null>(null);
 
-  // Build the resting style once. Selected / dimmed are applied imperatively.
-  const restingStyle = useMemo(() => getTrailStyle(trail), [trail]);
+  // Resting style depends on type AND zoom (low zoom = thicker stroke).
+  const restingStyle = useMemo(() => getTrailStyle(trail, zoom), [trail, zoom]);
+
+  // Keep a live zoom ref so the hover handlers (registered once via
+  // onEachFeature) read the current value, not the zoom at mount time.
+  const zoomRef = useRef<number | undefined>(zoom);
+  zoomRef.current = zoom;
 
   useEffect(() => {
     const layer = layerRef.current;
     if (!layer) return;
     if (isSelected) {
-      layer.setStyle(getTrailSelectedStyle(trail));
+      layer.setStyle(getTrailSelectedStyle(trail, zoom));
       layer.bringToFront();
     } else if (isDimmed) {
-      layer.setStyle(getTrailDimmedStyle(trail));
+      layer.setStyle(getTrailDimmedStyle(trail, zoom));
     } else {
-      layer.setStyle(getTrailStyle(trail));
+      layer.setStyle(getTrailStyle(trail, zoom));
     }
-  }, [trail, isSelected, isDimmed]);
+  }, [trail, isSelected, isDimmed, zoom]);
 
   return (
     <GeoJSON
@@ -190,19 +203,22 @@ function TrailLayer({
 
         // Hover handlers operate on the same Leaflet layer instance. We skip
         // the hover restyle when this trail is currently spotlit so a hover
-        // doesn't briefly downsize the selected line.
+        // doesn't briefly downsize the selected line. zoomRef is read at
+        // event time so the hover honours the current zoom, not the zoom at
+        // mount.
         layer.on({
           mouseover: (e) => {
             if (isSelected) return;
             const target = e.target as Path;
-            target.setStyle(getTrailHoverStyle(trail));
+            target.setStyle(getTrailHoverStyle(trail, zoomRef.current));
             target.bringToFront();
           },
           mouseout: (e) => {
             if (isSelected) return;
             const target = e.target as Path;
+            const z = zoomRef.current;
             target.setStyle(
-              isDimmed ? getTrailDimmedStyle(trail) : getTrailStyle(trail)
+              isDimmed ? getTrailDimmedStyle(trail, z) : getTrailStyle(trail, z)
             );
           },
           click: () => {

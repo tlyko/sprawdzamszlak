@@ -17,7 +17,7 @@
  */
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { MapContainer, useMap, useMapEvents } from "react-leaflet";
 import L from "leaflet";
 import type { GeoJsonObject } from "geojson";
@@ -38,6 +38,14 @@ const DEFAULT_ZOOM = 11;
 const FLY_TO_PADDING: [number, number] = [80, 80];
 const FLY_TO_DURATION_S = 1.2;
 
+// Initial fit on first paint: snap the viewport to all trails' combined
+// bounds so the owner sees "moja kronika" not "ogólna mapa Tatr". Padded
+// looser than the spotlight fly so the cluster doesn't crowd the edges,
+// and capped at zoom 13 so a single short trail doesn't zoom past the
+// useful Tatra view.
+const INITIAL_FIT_PADDING: [number, number] = [40, 40];
+const INITIAL_FIT_MAX_ZOOM = 13;
+
 export interface MapShellProps {
   peaks: Peak[];
   trails: Trail[];
@@ -56,6 +64,51 @@ function ZoomTracker({ onZoom }: { onZoom: (zoom: number) => void }) {
     zoomend: () => onZoom(map.getZoom()),
     load: () => onZoom(map.getZoom()),
   });
+  return null;
+}
+
+// On first paint with non-empty trail data, fit the viewport to the union
+// of all trails' bounds. Tatry-default center+zoom (49.2, 20.05 / z11)
+// leaves the owner staring at "general Tatra map" when "moja kronika"
+// only spans a fraction of that bbox. After the first fit we never run
+// again — subsequent selections drive flyTo via FlyToSelected.
+function FitToAllTrailsOnLoad({
+  trailGeoData,
+}: {
+  trailGeoData: TrailGeoJson[];
+}) {
+  const map = useMap();
+  const fittedRef = useRef(false);
+
+  useEffect(() => {
+    if (fittedRef.current) return;
+    if (trailGeoData.length === 0) return;
+
+    const layer = L.geoJSON();
+    let added = 0;
+    for (const geo of trailGeoData) {
+      if (!geo) continue;
+      try {
+        layer.addData(geo as GeoJsonObject);
+        added += 1;
+      } catch {
+        // A malformed payload from S3 just gets skipped — the rest still
+        // contribute to the bbox.
+      }
+    }
+    if (added === 0) return;
+
+    const bounds = layer.getBounds();
+    if (!bounds.isValid()) return;
+
+    map.fitBounds(bounds, {
+      padding: INITIAL_FIT_PADDING,
+      maxZoom: INITIAL_FIT_MAX_ZOOM,
+      animate: false,
+    });
+    fittedRef.current = true;
+  }, [map, trailGeoData]);
+
   return null;
 }
 
@@ -134,6 +187,7 @@ export function MapShell({
     >
       <MapTileLayer />
       <ZoomTracker onZoom={setZoom} />
+      <FitToAllTrailsOnLoad trailGeoData={trailGeoData} />
       <FlyToSelected
         trails={trails}
         trailGeoData={trailGeoData}
@@ -144,6 +198,7 @@ export function MapShell({
         manifest={trails}
         geoData={trailGeoData}
         selectedTrailId={selectedTripId ?? null}
+        zoom={zoom}
         {...(onTripSelect ? { onTrailClick: (id) => onTripSelect(id) } : {})}
       />
 
