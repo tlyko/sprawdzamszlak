@@ -54,6 +54,9 @@ importers:
 
   apps/web:
     dependencies:
+      '@sprawdzamszlak/shared':
+        specifier: workspace:*
+        version: link:../../packages/shared
       leaflet:
         specifier: ^1.9.4
         version: 1.9.4
