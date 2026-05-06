@@ -22,14 +22,50 @@
 import { useEffect, useMemo, useRef } from "react";
 import { GeoJSON } from "react-leaflet";
 import type { GeoJSON as LeafletGeoJSON, Layer, Path } from "leaflet";
-import type { GeoJsonObject } from "geojson";
-import type { Trail, TrailGeoJson } from "./types";
+import type { Feature, GeoJsonObject } from "geojson";
+import type { Trail, TrailGeoJson, TrailType, TripFeatureProperties } from "./types";
 import {
   getTrailDimmedStyle,
   getTrailHoverStyle,
   getTrailSelectedStyle,
   getTrailStyle,
 } from "./trail-style";
+
+// Polish popup labels for the five TrailType values. Mirrors `type-pill.tsx`
+// (which uses lowercase chip wording) but capitalised for popup-headline use.
+// Out-of-band on TrailType extension this fails the type-checker — record
+// must enumerate every variant.
+const TRAIL_TYPE_POPUP_LABEL: Record<TrailType, string> = {
+  official: "Oficjalny szlak",
+  "off-piste": "Pozaszlak",
+  walk: "Spacer",
+  "ski-tour": "Skitur",
+  climbing: "Wspinaczka",
+};
+
+const POPUP_DATE_MONTHS = [
+  "stycznia",
+  "lutego",
+  "marca",
+  "kwietnia",
+  "maja",
+  "czerwca",
+  "lipca",
+  "sierpnia",
+  "września",
+  "października",
+  "listopada",
+  "grudnia",
+] as const;
+
+function formatPopupDate(isoString: string | undefined): string | null {
+  if (!isoString) return null;
+  const d = new Date(isoString);
+  if (Number.isNaN(d.getTime())) return null;
+  const month = POPUP_DATE_MONTHS[d.getMonth()];
+  if (!month) return null;
+  return `${d.getDate()} ${month} ${d.getFullYear()}`;
+}
 
 interface TrailOverlayProps {
   manifest: Trail[];
@@ -124,8 +160,9 @@ function TrailLayer({
       // S3 payload is stable per route id).
       data={geoJson as GeoJsonObject}
       style={restingStyle}
-      onEachFeature={(_feature, layer: Layer) => {
-        // Popup with the manifest's name + a Polish label for the type.
+      onEachFeature={(feature: Feature, layer: Layer) => {
+        // Popup with the manifest's name + Polish type label + (when the
+        // GeoJSON Feature carries it) the date of the activity.
         // Built as DOM, never as an HTML string — see the file header.
         const container = document.createElement("div");
         container.className = "trail-popup";
@@ -136,10 +173,19 @@ function TrailLayer({
 
         const typeLine = document.createElement("p");
         typeLine.className = "trail-popup__type";
-        typeLine.textContent =
-          trail.type === "off-piste" ? "Pozaszlak" : "Oficjalny szlak";
+        typeLine.textContent = TRAIL_TYPE_POPUP_LABEL[trail.type];
 
         container.append(heading, typeLine);
+
+        const props = feature.properties as TripFeatureProperties | null;
+        const dateText = formatPopupDate(props?.start_date);
+        if (dateText) {
+          const dateLine = document.createElement("p");
+          dateLine.className = "trail-popup__date";
+          dateLine.textContent = dateText;
+          container.append(dateLine);
+        }
+
         layer.bindPopup(container);
 
         // Hover handlers operate on the same Leaflet layer instance. We skip

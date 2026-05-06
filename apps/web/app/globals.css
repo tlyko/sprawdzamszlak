@@ -318,6 +318,13 @@ body {
   text-transform: lowercase;
   letter-spacing: 0.02em;
 }
+.trail-popup__date {
+  margin: 2px 0 0 0;
+  color: var(--ink-3);
+  font-size: var(--text-xs);
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  letter-spacing: 0.02em;
+}
 
 /* Leaflet's attribution control — keep it but make it match the dark UI.
    Stadia's terms require it visible; muted ink-3 on a translucent surface
