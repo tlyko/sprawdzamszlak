@@ -1,0 +1,71 @@
+name: Smoke
+
+# Daily curl-only smoke test against production. Catches regressions
+# the unit tests can't see — e.g. the Cloudflare Workers Static Assets
+# `_redirects` 307 issue (audit-2026-05-05-night.md §1) where the site
+# build was clean but `/szczyty/<slug>/` was broken in production.
+#
+# What this is NOT:
+#   - It does not exercise authenticated paths (`/api/admin/*`).
+#   - It does not check Strava token freshness — that needs AWS creds
+#     and lives in a follow-up workflow.
+#   - It does not assert response bodies beyond a smoke-level shape.
+#
+# Failure → GHA emails the repo admin via default notification settings.
+# No webhook fan-out required.
+
+on:
+  schedule:
+    # 06:15 UTC ≈ 07:15/08:15 Europe/Warsaw — well after any owner-side
+    # Strava webhook activity from the previous evening.
+    - cron: '15 6 * * *'
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - '.github/workflows/smoke.yml'
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Home page returns 200
+        run: |
+          status=$(curl -s -o /dev/null -w '%{http_code}' --max-time 15 https://sprawdzamszlak.pl/)
+          echo "GET / → $status"
+          test "$status" = "200"
+
+      - name: API root (peaks) returns 200 and a non-empty array
+        run: |
+          body=$(curl -s --max-time 15 https://sprawdzamszlak.pl/api/)
+          count=$(echo "$body" | jq 'length')
+          echo "GET /api/ → length=$count"
+          test "$count" -ge 24
+
+      - name: API /routes returns 200 and at least 16 trails
+        run: |
+          # Strava-imported trails landed at 17 (PROJECT-STATUS milestone:
+          # "17 strava-* routes live"). Threshold 16 leaves headroom for
+          # one transient drop without paging the owner.
+          body=$(curl -s --max-time 15 https://sprawdzamszlak.pl/api/routes)
+          count=$(echo "$body" | jq 'length')
+          echo "GET /api/routes → length=$count"
+          test "$count" -ge 16
+
+      - name: SPA shell rewrite — /szczyty/<slug>/ stays at 200
+        run: |
+          # Guard against the audit-2026-05-05-night §1 regression: Workers
+          # Static Assets serving `_redirects` rules with status 200 as a
+          # 307 redirect. Direct visit must return 200, not a redirect.
+          status=$(curl -s -o /dev/null -w '%{http_code}' --max-time 15 https://sprawdzamszlak.pl/szczyty/rysy/)
+          echo "GET /szczyty/rysy/ → $status"
+          test "$status" = "200"
+
+      - name: SPA shell rewrite — /trasy/<slug>/ stays at 200
+        run: |
+          # Slug taken from the seeded Krywań trail (strava-15876001309).
+          # If the seed ever rotates this asserts on a path that would
+          # 404 server-side; switch to a stable slug then.
+          status=$(curl -s -o /dev/null -w '%{http_code}' --max-time 15 https://sprawdzamszlak.pl/trasy/strava-15876001309/)
+          echo "GET /trasy/strava-15876001309/ → $status"
+          test "$status" = "200"
