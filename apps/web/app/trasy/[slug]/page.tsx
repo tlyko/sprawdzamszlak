@@ -6,34 +6,59 @@
  * the desktop (share a route URL) — the in-place panel and this page render
  * the same TripDetailPanel underneath, so they stay in sync.
  *
- * Static export reality (CLAUDE.md: this app builds with output: 'export'):
- *   Next.js requires `generateStaticParams` for any dynamic route under
- *   static export. We pre-render a single placeholder shell at build time;
- *   the actual route data is hydrated client-side from the URL via
- *   `useParams()` inside `trip-detail-route.tsx`. This matches the "B" path
- *   called out in the PR brief — one static shell, SPA-style hydration —
- *   and avoids coupling deploys to API availability or to the rate at which
- *   new Strava routes land.
+ * Build-time slug enumeration:
+ *   With `output: 'export'` + Next.js 16, the client app router only accepts
+ *   URLs whose params are listed in `generateStaticParams`. Visiting a non-
+ *   listed slug (e.g. /trasy/strava-12345/) directly hydrates the home route
+ *   instead of this one — observed live, no console errors.
  *
- *   For arbitrary slugs to actually resolve to this shell, Cloudflare's
- *   static-asset SPA fallback (`not_found_handling: "single-page-application"`
- *   in wrangler config) needs to be wired at the deploy layer. Without it,
- *   only the placeholder slug below resolves directly. The in-place desktop
- *   panel still works regardless; PR 5 can revisit if a manifest snapshot
- *   ever feeds the build.
+ *   So at build time we fetch `/api/routes` from production and emit a
+ *   shell per known trail slug. Build-to-deploy lag means a brand-new
+ *   Strava import isn't directly URL-able for ~minutes (until the next
+ *   deploy); deep-links from the running app still work because the home
+ *   tree drives the in-place panel without per-slug hydration.
+ *
+ *   If the fetch fails (offline build, dev-machine without network) we
+ *   fall back to the `_` placeholder only — build still succeeds, the
+ *   shell still copies to /_shells/trasy.html for the legacy SPA fallback.
  */
-import { TripDetailRoute } from "./trip-detail-route";
+import { TripDetailRoute } from './trip-detail-route';
 
-// Single placeholder so Next emits one shell HTML for the route. The slug
-// value itself is never read server-side — the client child reads
-// `useParams()` and resolves the trail from the live manifest.
-export function generateStaticParams(): Array<{ slug: string }> {
-  return [{ slug: "_" }];
+// Fetch the live trail manifest at build time. Same endpoint the home page
+// calls at runtime; no auth needed. Time out fast so an unavailable upstream
+// doesn't gate the build for minutes.
+async function fetchKnownSlugs(): Promise<string[]> {
+  const ROUTES_URL = 'https://sprawdzamszlak.pl/api/routes';
+  try {
+    const resp = await fetch(ROUTES_URL, {
+      signal: AbortSignal.timeout(8000),
+    });
+    if (!resp.ok) {
+      console.warn(
+        `[trasy/[slug]] /api/routes returned HTTP ${resp.status}; falling back to placeholder only`,
+      );
+      return [];
+    }
+    const data = (await resp.json()) as Array<{ id?: string }>;
+    return data
+      .map((r) => r.id)
+      .filter((id): id is string => typeof id === 'string' && id.length > 0);
+  } catch (err) {
+    console.warn(
+      '[trasy/[slug]] /api/routes fetch failed at build time; falling back to placeholder only',
+      err,
+    );
+    return [];
+  }
 }
 
-// Unknown slugs at runtime should still serve this shell rather than the
-// generic 404. `dynamicParams = true` (the default) is what enables that
-// once the SPA fallback is in place.
+export async function generateStaticParams(): Promise<Array<{ slug: string }>> {
+  const slugs = await fetchKnownSlugs();
+  // Keep the `_` placeholder so apps/web/scripts/copy-spa-shells.mjs has a
+  // canonical shell to mirror to /_shells/trasy.html — that fallback covers
+  // any new Strava import that lands between deploys.
+  return [{ slug: '_' }, ...slugs.map((slug) => ({ slug }))];
+}
 
 export default function TripDetailPage() {
   return <TripDetailRoute />;
