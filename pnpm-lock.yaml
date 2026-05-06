@@ -95,8 +95,8 @@ importers:
         specifier: ^19
         version: 19.2.3(@types/react@19.2.14)
       '@types/react-leaflet':
-        specifier: ^2.8.3
-        version: 2.8.3
+        specifier: ^3.0.0
+        version: 3.0.0(leaflet@1.9.4)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
       eslint:
         specifier: ^9
         version: 9.39.4(jiti@2.6.1)
@@ -1492,8 +1492,9 @@ packages:
     peerDependencies:
       '@types/react': ^19.2.0
 
-  '@types/react-leaflet@2.8.3':
-    resolution: {integrity: sha512-MeBQnVQe6ikw8dkuZE4F96PvMdQeilZG6/ekk5XxhkSzU3lofedULn3UR/6G0uIHjbRazi4DA8LnLACX0bPhBg==}
+  '@types/react-leaflet@3.0.0':
+    resolution: {integrity: sha512-p8R9mVKbCDDqOdW+M6GyJJuFn6q+IgDFYavFiOIvaWHuOe5kIHZEtCy1pfM43JIA6JiB3D/aDoby7C51eO+XSg==}
+    deprecated: This is a stub types definition. react-leaflet provides its own type definitions, so you do not need this installed.
 
   '@types/react@19.2.14':
     resolution: {integrity: sha512-ilcTH/UniCkMdtexkoCN0bI7pMcJDvmQFPvuPvmEaYA/NSfFTAgdUSLAoVjaRJm7+6PvcM+q1zYOwS4wTYMF9w==}
@@ -4757,10 +4758,13 @@ snapshots:
     dependencies:
       '@types/react': 19.2.14
 
-  '@types/react-leaflet@2.8.3':
+  '@types/react-leaflet@3.0.0(leaflet@1.9.4)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)':
     dependencies:
-      '@types/leaflet': 1.9.21
-      '@types/react': 19.2.14
+      react-leaflet: 5.0.0(leaflet@1.9.4)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
+    transitivePeerDependencies:
+      - leaflet
+      - react
+      - react-dom
 
   '@types/react@19.2.14':
     dependencies:
