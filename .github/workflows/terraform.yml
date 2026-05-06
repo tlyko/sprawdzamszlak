@@ -63,7 +63,7 @@ jobs:
         run: corepack pnpm -F '@sprawdzamszlak/api' build
 
       - name: Configure AWS credentials via OIDC
-        uses: aws-actions/configure-aws-credentials@v4
+        uses: aws-actions/configure-aws-credentials@v6
         with:
           role-to-assume: arn:aws:iam::214598715232:role/sprawdzamszlak-gha-terraform
           aws-region: ${{ env.AWS_REGION }}
