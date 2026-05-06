@@ -225,7 +225,7 @@ function PeakDetail({ peak }: { peak: Peak }) {
           </a>
         ) : null}
         <Link
-          href="/"
+          href={`/?peak=${peak.id}`}
           className="font-mono text-[12px] uppercase tracking-[0.06em] hover:text-ink-1 transition-colors"
         >
           pokaż na mapie

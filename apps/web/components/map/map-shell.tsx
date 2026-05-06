@@ -55,7 +55,16 @@ export interface MapShellProps {
   // Called when a trail is clicked directly on the map; lets the page sync
   // the list selection with map clicks (bidirectional selection).
   onTripSelect?: (trailId: string | null) => void;
+  // Deep-link target from /szczyty/[slug] "pokaż na mapie" — when set, fly
+  // to the peak and open its popup. Decoupled from selectedTripId because
+  // a peak focus doesn't imply a trail focus.
+  selectedPeakId?: string | null;
 }
+
+// Zoom we fly to when a peak is deep-linked. Tier "low" markers only show
+// at z≥14 (peak-tier.ts), so this guarantees the dot is on screen for any
+// peak regardless of height.
+const PEAK_FOCUS_ZOOM = 14;
 
 // Subscribes to map events and pushes the live zoom into parent state. The
 // zoom value is consumed by PeakMarkers to decide which tier renders.
@@ -72,16 +81,26 @@ function ZoomTracker({ onZoom }: { onZoom: (zoom: number) => void }) {
 // leaves the owner staring at "general Tatra map" when "moja kronika"
 // only spans a fraction of that bbox. After the first fit we never run
 // again — subsequent selections drive flyTo via FlyToSelected.
+//
+// Suppressed when a peak deep-link is active: FlyToSelectedPeak owns the
+// initial framing in that case and we don't want this effect to clobber
+// it after trailGeoData arrives.
 function FitToAllTrailsOnLoad({
   trailGeoData,
+  suppressed,
 }: {
   trailGeoData: TrailGeoJson[];
+  suppressed: boolean;
 }) {
   const map = useMap();
   const fittedRef = useRef(false);
 
   useEffect(() => {
     if (fittedRef.current) return;
+    if (suppressed) {
+      fittedRef.current = true;
+      return;
+    }
     if (trailGeoData.length === 0) return;
 
     const layer = L.geoJSON();
@@ -158,12 +177,48 @@ function FlyToSelected({
   return null;
 }
 
+// When selectedPeakId changes, fly the map to that peak's lat/lon at a
+// fixed zoom (PEAK_FOCUS_ZOOM) so the marker is guaranteed visible. The
+// popup-opening side lives in PeakMarkers — it owns the marker refs.
+function FlyToSelectedPeak({
+  peaks,
+  selectedPeakId,
+}: {
+  peaks: Peak[];
+  selectedPeakId: string | null | undefined;
+}) {
+  const map = useMap();
+
+  useEffect(() => {
+    if (!selectedPeakId) return;
+    const peak = peaks.find((p) => p.id === selectedPeakId);
+    if (!peak || peak.latitude === undefined || peak.longitude === undefined) {
+      return;
+    }
+
+    const target: [number, number] = [peak.latitude, peak.longitude];
+
+    const reducedMotion =
+      typeof window !== "undefined" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    if (reducedMotion) {
+      map.setView(target, PEAK_FOCUS_ZOOM, { animate: false });
+    } else {
+      map.flyTo(target, PEAK_FOCUS_ZOOM, { duration: FLY_TO_DURATION_S });
+    }
+  }, [map, peaks, selectedPeakId]);
+
+  return null;
+}
+
 export function MapShell({
   peaks,
   trails,
   trailGeoData,
   selectedTripId = null,
   onTripSelect,
+  selectedPeakId = null,
 }: MapShellProps) {
   const [zoom, setZoom] = useState(DEFAULT_ZOOM);
 
@@ -187,12 +242,16 @@ export function MapShell({
     >
       <MapTileLayer />
       <ZoomTracker onZoom={setZoom} />
-      <FitToAllTrailsOnLoad trailGeoData={trailGeoData} />
+      <FitToAllTrailsOnLoad
+        trailGeoData={trailGeoData}
+        suppressed={selectedPeakId != null}
+      />
       <FlyToSelected
         trails={trails}
         trailGeoData={trailGeoData}
         selectedTripId={selectedTripId}
       />
+      <FlyToSelectedPeak peaks={peaks} selectedPeakId={selectedPeakId} />
 
       <TrailOverlay
         manifest={trails}
@@ -202,7 +261,7 @@ export function MapShell({
         {...(onTripSelect ? { onTrailClick: (id) => onTripSelect(id) } : {})}
       />
 
-      <PeakMarkers peaks={peaks} zoom={zoom} />
+      <PeakMarkers peaks={peaks} zoom={zoom} selectedPeakId={selectedPeakId} />
     </MapContainer>
   );
 }
