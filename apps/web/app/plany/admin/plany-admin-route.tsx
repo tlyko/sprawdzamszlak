@@ -12,8 +12,11 @@
  *     route idea, status, strava_id).
  *
  * All write calls go to `/api/admin/plans*` with `credentials: 'include'`
- * so the CF Access cookie (set on sprawdzamszlak.pl) attaches. Any
- * non-2xx surfaces inline; the optimistic UI rolls back on error.
+ * so the CF Access cookie (set on sprawdzamszlak.pl) attaches. Errors
+ * surface inline via `globalError`. Each row is treated as
+ * pending-while-in-flight (peak id in `pendingPeaks`) and we refetch
+ * the plans list on success — single-user latency tolerance > the
+ * complexity of an optimistic-rollback path.
  */
 
 import { useCallback, useEffect, useMemo, useState } from "react";
