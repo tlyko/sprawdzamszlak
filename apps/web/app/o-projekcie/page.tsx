@@ -58,14 +58,15 @@ export default function AboutPage() {
           jako pliki GPX — siedzą w S3, a manifest w DynamoDB. Nowe
           aktywności przylatują przez webhook ze Stravy; importowane są tylko
           aktywności górskie (hike, walk, ski touring, climbing — bieg po
-          mieście czy siłownia są pomijane). Listę szczytów (24 pozycje)
-          prowadzę osobno; każdy ma wpis z trudnością, oceną wspinaczkową
-          i krótkim komentarzem.
+          mieście czy siłownia są pomijane). Listę szczytów (ok. 320, z OSM
+          i Wikipedii) prowadzę osobno; te najważniejsze mają wpis
+          z trudnością, oceną wspinaczkową i krótkim komentarzem.
         </p>
 
         <p>
-          Stack: Next.js na Cloudflare Pages, statyczne API Lambda + DynamoDB
-          + S3 na AWS, Terraform na całość. Kod jest otwarty —{" "}
+          Stack: Next.js na Cloudflare Workers (statyczny export + Worker
+          proxy do API), Lambda + DynamoDB + S3 na AWS, Terraform na całość.
+          Kod jest otwarty —{" "}
           <a
             href={REPO_URL}
             target="_blank"

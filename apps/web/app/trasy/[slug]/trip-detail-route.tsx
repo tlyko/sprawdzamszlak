@@ -25,6 +25,7 @@ import {
   type TripMeta,
 } from "@/components/logbook/extract-trip-meta";
 import { useOgMeta } from "@/components/logbook/og-meta";
+import { applyTypeOverrides } from "@/components/logbook/type-overrides";
 import type { Trail, TrailGeoJson } from "@/components/map/types";
 import { API_BASE as API_URL_BASE } from "@/lib/api-base";
 
@@ -72,7 +73,11 @@ export function TripDetailRoute() {
         if (!routesRes.ok) {
           throw new Error(`routes: HTTP ${routesRes.status}`);
         }
-        const trails: Trail[] = await routesRes.json();
+        const trailsRaw: Trail[] = await routesRes.json();
+        // Apply the same Hike→official overrides that the home page uses
+        // (use-trip-data.ts) so this page agrees with the trail-row label
+        // for owner-reclassified trails (Rysy, Krywań, etc.).
+        const trails = applyTypeOverrides(trailsRaw);
         const trail = trails.find((t) => t.id === currentSlug);
         if (!trail) {
           if (!cancelled) setState({ kind: "not-found" });
