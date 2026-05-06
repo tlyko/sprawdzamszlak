@@ -1,0 +1,61 @@
+# Dependabot configuration — opens weekly PRs for outdated dependencies
+# rather than letting versions drift between active sessions.
+#
+# No auto-merge here yet. The Test workflow (apps/api vitest, 56 tests)
+# is the gate; CF Workers Builds catches build regressions on web. Once
+# the test surface grows to cover the web app and the planner CRUD
+# integration paths, owner can wire `gh pr merge --auto` for minor/patch
+# bumps via a separate workflow.
+#
+# Why one ecosystem entry instead of three for the workspace packages:
+# pnpm at the repo root is a single dependency graph (apps/* +
+# packages/* are all `workspace:*` members), so listing /apps/api etc.
+# would create N PRs for the same upgrade. The root npm ecosystem entry
+# sweeps all workspaces in one PR per version.
+
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: '07:00'
+      timezone: Europe/Warsaw
+    # Cap concurrent PRs so a quiet sprint doesn't get overwhelmed —
+    # owner triages 5 at a time, the rest queue.
+    open-pull-requests-limit: 5
+    # Group major bumps separately so AWS-SDK et al. don't churn into
+    # 10 separate PRs when they release in lockstep.
+    groups:
+      aws-sdk:
+        patterns:
+          - '@aws-sdk/*'
+      next-react:
+        patterns:
+          - 'next'
+          - 'react'
+          - 'react-dom'
+          - '@types/react'
+          - '@types/react-dom'
+          - 'eslint-config-next'
+      types:
+        patterns:
+          - '@types/*'
+        update-types:
+          - patch
+          - minor
+    labels:
+      - dependencies
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: '07:00'
+      timezone: Europe/Warsaw
+    open-pull-requests-limit: 3
+    labels:
+      - dependencies
+      - github-actions
