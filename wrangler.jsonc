@@ -17,15 +17,18 @@
   "assets": {
     "directory": "./apps/web/out",
     // Worker code calls `env.ASSETS.fetch(req)` for non-/api paths to
-    // delegate static-asset semantics (including _redirects rewrites)
-    // to the assets binding. The binding name is referenced from
-    // `apps/web/worker/index.ts`.
+    // delegate static-asset semantics to the assets binding. The binding
+    // name is referenced from `apps/web/worker/index.ts`.
     "binding": "ASSETS",
-    // SPA fallback so dynamic routes like /trasy/[slug]/ (Strava-imported
-    // activities, slugs known only at runtime) hydrate against the static
-    // shell — see apps/web/public/_redirects for the per-route rewrites.
-    // Trade-off: typo URLs serve index.html and the SPA shows an empty
-    // state instead of a hard 404, which is fine for a single-user app.
+    // SPA fallback for unknown paths — e.g. typo URLs serve index.html
+    // and the SPA shows an empty state instead of a hard 404, which is
+    // fine for a single-user app.
+    //
+    // Per-route SPA rewrites for /trasy/<slug>/ and /szczyty/<slug>/ are
+    // handled by the Worker itself (env.ASSETS.fetch on the per-route
+    // shell) so the slug stays visible in the URL bar — Workers Static
+    // Assets serves a `_redirects` 200-rewrite as a 307 redirect, which
+    // would lose the slug. See apps/web/worker/index.ts.
     "not_found_handling": "single-page-application"
   }
 }

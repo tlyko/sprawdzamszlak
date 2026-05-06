@@ -1,21 +1,16 @@
-// Postbuild: copy each dynamic-route placeholder shell to a sibling path
-// outside its source prefix, so `_redirects` rules can rewrite to it
-// without tripping Cloudflare's infinite-loop validator.
+// Postbuild: copy each dynamic-route placeholder shell to `out/_shells/<route>.html`,
+// which is what the Worker fetches via env.ASSETS.fetch() on direct visits to
+// /trasy/<slug>/ and /szczyty/<slug>/.
 //
-// Why this exists:
-//   Cloudflare Workers Static Assets normalises a destination path by
-//   stripping `/index.html` and `/index` before matching against rules.
-//   With Next.js static export the dynamic-route shells land under
-//   `out/trasy/_/index.html` and `out/szczyty/_/index.html`. A naive
-//   redirect like `/trasy/* /trasy/_/index.html 200` is rejected at
-//   deploy time (validation error 10021) because the normalised
-//   destination `/trasy/_/` matches the source pattern again.
+// Why this lives outside the source prefix:
+//   Next.js static export emits `out/trasy/_/index.html` and
+//   `out/szczyty/_/index.html`. The Worker can't fetch those URLs as-is —
+//   Cloudflare normalises `/trasy/_/index.html` back to `/trasy/_/` which
+//   would re-enter our SPA-rewrite branch and loop. Copying the shells to
+//   `/_shells/*.html` (outside any rewrite prefix) makes them addressable
+//   directly via env.ASSETS.fetch().
 //
-// Fix: copy the shells to `out/_shells/<route>.html`, which sits outside
-// any redirect source prefix and is not on a path Cloudflare will
-// normalise back into a matched rule.
-//
-// `_redirects` (apps/web/public/_redirects) points at the copies.
+// The Worker (apps/web/worker/index.ts) reads from `/_shells/*.html`.
 
 import { copyFile, mkdir } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
