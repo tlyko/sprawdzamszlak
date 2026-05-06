@@ -19,7 +19,7 @@
  * complexity of an optimistic-rollback path.
  */
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 
 import { API_BASE } from "@/lib/api-base";
@@ -80,6 +80,36 @@ export function PlanyAdminRoute() {
   const [search, setSearch] = useState("");
   const [pendingPeaks, setPendingPeaks] = useState<Set<string>>(new Set());
   const [globalError, setGlobalError] = useState<string | null>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  // Manual open/closed state per tier. Korona starts open, other tiers
+  // start closed (320 peaks would otherwise be one giant scroll). When
+  // a search is active we override and force every tier open so matches
+  // are visible regardless of which group they fall into.
+  const [openTiers, setOpenTiers] = useState<Set<PeakTier>>(
+    () => new Set<PeakTier>(["summit"]),
+  );
+
+  // ⌘K / Ctrl+K focuses the search input. Skip when the user is already
+  // typing in an editable field — they may have a global shortcut habit
+  // but inside a textarea we don't want to steal the keystroke.
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key !== "k" && e.key !== "K") return;
+      if (!(e.metaKey || e.ctrlKey)) return;
+      const target = e.target as HTMLElement | null;
+      const tag = target?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") {
+        // Already in an input — let ⌘K through to the browser's omnibox
+        // handler if the user was deliberately invoking it from elsewhere.
+        return;
+      }
+      e.preventDefault();
+      searchInputRef.current?.focus();
+      searchInputRef.current?.select();
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
 
   const refresh = useCallback(async () => {
     try {
@@ -230,10 +260,11 @@ export function PlanyAdminRoute() {
         <div className="flex flex-wrap items-center gap-4">
           <YearSelector year={year} onChange={setYear} />
           <input
+            ref={searchInputRef}
             type="search"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="szukaj…"
+            placeholder="szukaj…  (⌘K)"
             className="flex-1 min-w-[200px] rounded-sm border border-hairline bg-surface-1 px-3 py-2 font-sans text-sm text-ink-1 placeholder-ink-3 focus:outline-none focus:border-accent"
             aria-label="szukaj szczytu"
           />
@@ -258,15 +289,35 @@ export function PlanyAdminRoute() {
         TIER_ORDER.map((tier) => {
           const peaks = groupedByTier.get(tier) ?? [];
           if (peaks.length === 0) return null;
+          // Search overrides any manual collapse so a hit in "Pozostałe"
+          // is still visible without clicking through.
+          const open = search.length > 0 || openTiers.has(tier);
           return (
-            <section key={tier} className="mb-8">
-              <h2 className="mb-3 font-mono text-[11px] uppercase tracking-[0.08em] text-ink-3">
+            <details
+              key={tier}
+              className="mb-4 rounded-sm border border-hairline bg-surface-1"
+              open={open}
+              onToggle={(e) => {
+                if (search.length > 0) return; // search dictates open
+                const isOpen = (e.target as HTMLDetailsElement).open;
+                setOpenTiers((prev) => {
+                  const next = new Set(prev);
+                  if (isOpen) next.add(tier);
+                  else next.delete(tier);
+                  return next;
+                });
+              }}
+            >
+              <summary className="cursor-pointer list-none px-4 py-3 font-mono text-[11px] uppercase tracking-[0.08em] text-ink-3 marker:hidden hover:text-ink-1 transition-colors">
+                <span aria-hidden="true" className="mr-2 inline-block w-2 text-ink-3">
+                  {open ? "▾" : "▸"}
+                </span>
                 {TIER_LABEL[tier]}{" "}
                 <span className="text-ink-2">({peaks.length})</span>
-              </h2>
+              </summary>
               <ul
                 role="list"
-                className="flex flex-col divide-y divide-hairline rounded-sm border border-hairline bg-surface-1"
+                className="flex flex-col divide-y divide-hairline border-t border-hairline"
               >
                 {peaks.map((peak) => (
                   <li key={peak.id}>
@@ -280,7 +331,7 @@ export function PlanyAdminRoute() {
                   </li>
                 ))}
               </ul>
-            </section>
+            </details>
           );
         })}
     </main>
