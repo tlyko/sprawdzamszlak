@@ -14,9 +14,9 @@
   "dependencies": {
     "@sprawdzamszlak/shared": "workspace:*",
     "leaflet": "^1.9.4",
-    "next": "16.2.4",
-    "react": "19.2.0",
-    "react-dom": "19.2.0",
+    "next": "16.2.6",
+    "react": "19.2.6",
+    "react-dom": "19.2.6",
     "react-leaflet": "^5.0.0"
   },
   "devDependencies": {
@@ -28,7 +28,7 @@
     "@types/react-dom": "^19",
     "@types/react-leaflet": "^2.8.3",
     "eslint": "^9",
-    "eslint-config-next": "16.2.4",
+    "eslint-config-next": "16.2.6",
     "tailwindcss": "^4",
     "typescript": "^5",
     "vite-tsconfig-paths": "^5.1.4",
