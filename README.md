@@ -1,122 +1,122 @@
 # sprawdzamszlak.pl
 
-Osobisty dziennik wyjść górskich, głównie w Tatrach: szlaki, wyjścia pozaszlakowe, skitury i wspinanie. Aktywności same trafiają ze Stravy na mapę, a strona zbiera je w kronikę ze statystykami, szczytami i postępem w Wielkiej Koronie Tatr.
+A personal logbook of mountain trips, mostly in the Tatras: marked trails, off-trail routes, ski touring and climbing. Activities flow from Strava onto the map automatically, and the site turns them into a log with stats, peaks and progress on the Crown of the Tatras (Wielka Korona Tatr).
 
-- Strona: [sprawdzamszlak.pl](https://sprawdzamszlak.pl)
+- Site: [sprawdzamszlak.pl](https://sprawdzamszlak.pl)
 - Preview: `sprawdzamszlak.tlyko94.workers.dev`
 
-## Co jest na stronie
+## What's on the site
 
-| Ścieżka | Zawartość |
+| Path | Content |
 |---|---|
-| `/` | dziennik wyjść: lista z filtrami i grupami według roku obok mapy, kliknięcie przybliża trasę |
-| `/trasy/[slug]/` | szczegóły wyjścia: profil wysokości, zdjęcia ze Stravy, pobieranie GPX, udostępnianie |
-| `/szczyty/[slug]/` | strona szczytu (katalog ~320 szczytów z OSM i Wikipedii) z wyszukiwarką |
-| `/korona-tatr` | postęp w Wielkiej Koronie Tatr |
-| `/statystyki` | „rok w liczbach” |
-| `/plany/` | planowane wyjścia (lista publiczna) |
-| `/plany/admin/` | edycja planów, za Cloudflare Access |
-| `/strava`, `/strava/connected` | podłączenie konta Stravy |
-| `/o-projekcie` | o projekcie |
+| `/` | trip log: list with filters and year groups next to the map, clicking a trip flies the map to it |
+| `/trasy/[slug]/` | trip details: elevation profile, Strava photos, GPX download, sharing |
+| `/szczyty/[slug]/` | peak page (catalog of ~320 peaks from OSM and Wikipedia) with search |
+| `/korona-tatr` | Crown of the Tatras progress |
+| `/statystyki` | "year in numbers" |
+| `/plany/` | planned trips (public list) |
+| `/plany/admin/` | plan editing, behind Cloudflare Access |
+| `/strava`, `/strava/connected` | connecting a Strava account |
+| `/o-projekcie` | about the project |
 
-## Architektura
+## Architecture
 
 ```
- Przeglądarka
-   └─ sprawdzamszlak.pl ── Cloudflare Worker ─┬─ statyczny eksport Next.js (assets)
+ Browser
+   └─ sprawdzamszlak.pl ── Cloudflare Worker ─┬─ static Next.js export (assets)
                                               └─ /api/* ──► AWS API Gateway ──► Lambda (Node, TS) ──┬─► DynamoDB
-                                                                                                    ├─► S3 (GeoJSON tras)
- Strava ── webhook ──► API Gateway ──► Lambda ──► DynamoDB (events) ── Stream ──► Lambda fetcher ────┘
+                                                                                                    ├─► S3 (route GeoJSON)
+ Strava ── webhook ──► API Gateway ──► Lambda ──► DynamoDB (events) ── Stream ──► fetcher Lambda ────┘
 ```
 
-- **Frontend:** Next.js 16 (`output: 'export'`), React, Leaflet z kafelkami Stadia Maps (OSM jako fallback)
-- **Edge:** Cloudflare Worker (`apps/web/worker/index.ts`) serwuje statyczne pliki, przekazuje `/api/*` do AWS i podstawia shelle dla dynamicznych ścieżek `/trasy/*` i `/szczyty/*`
-- **Backend:** dwie Lambdy w TypeScript:
-  - `sprawdzamszlak-app` obsługuje API, OAuth i webhook Stravy
-  - `sprawdzamszlak-app-fetcher` jest wyzwalana przez DynamoDB Stream, pobiera aktywność i streamy ze Stravy, buduje GeoJSON i zapisuje go do S3 i DynamoDB
-- **Dane:** DynamoDB (szczyty, trasy, plany, stany OAuth, zdarzenia webhooka z TTL), S3 (`trails/strava_{id}.geojson`)
-- **Auth panelu:** Cloudflare Access (magic link), a Lambda dodatkowo weryfikuje JWT z CF Access
-- **Sekrety:** SSM Parameter Store (tokeny i klucze Stravy, konfiguracja CF Access)
-- **IaC:** Terraform z backendem S3 i DynamoDB, apply przez GitHub Actions z AWS OIDC
-- **Koszty:** AWS Budget $1/mies. i Cost Anomaly Detection
+- **Frontend:** Next.js 16 (`output: 'export'`), React, Leaflet with Stadia Maps tiles (OSM as fallback)
+- **Edge:** a Cloudflare Worker (`apps/web/worker/index.ts`) serves static files, proxies `/api/*` to AWS and serves shells for the dynamic `/trasy/*` and `/szczyty/*` paths
+- **Backend:** two TypeScript Lambdas:
+  - `sprawdzamszlak-app` handles the API, OAuth and the Strava webhook
+  - `sprawdzamszlak-app-fetcher` is triggered by a DynamoDB Stream, fetches the activity and its streams from Strava, builds GeoJSON and writes it to S3 and DynamoDB
+- **Data:** DynamoDB (peaks, routes, plans, OAuth states, webhook events with TTL), S3 (`trails/strava_{id}.geojson`)
+- **Admin auth:** Cloudflare Access (magic link), and the Lambda verifies the CF Access JWT as well
+- **Secrets:** SSM Parameter Store (Strava tokens and keys, CF Access config)
+- **IaC:** Terraform with an S3 + DynamoDB backend, applied from GitHub Actions via AWS OIDC
+- **Costs:** AWS Budget of $1/month and Cost Anomaly Detection
 
-Importowane są tylko aktywności typu `Hike`, `Walk`, `RockClimbing`, `BackcountrySki` i `AlpineSki`. Heurystyka przypisuje każdej trasie jeden z pięciu typów: szlak, pozaszlakowa, spacer, skitur, wspinaczka.
+Only `Hike`, `Walk`, `RockClimbing`, `BackcountrySki` and `AlpineSki` activities are imported. A heuristic assigns each route one of five types: marked trail, off-trail, walk, ski tour, climbing.
 
-Decyzje architektoniczne są w [`docs/adr/`](docs/adr/):
+Architecture decisions live in [`docs/adr/`](docs/adr/):
 
-| ADR | Temat |
+| ADR | Topic |
 |---|---|
-| [001](docs/adr/ADR-001-stack-and-monorepo.md) | Stack i monorepo: zostajemy na AWS, TypeScript, pnpm workspaces |
-| [002](docs/adr/ADR-002-admin-panel-auth.md) | Auth panelu admina (zastąpiony przez 007/008) |
-| [003](docs/adr/ADR-003-strava-oauth-and-webhook.md) | OAuth i webhook Stravy, idempotencja |
-| [004](docs/adr/ADR-004-gpx-parser-and-s3-layout.md) | Parser GPX i układ S3 |
+| [001](docs/adr/ADR-001-stack-and-monorepo.md) | Stack and monorepo: stay on AWS, TypeScript, pnpm workspaces |
+| [002](docs/adr/ADR-002-admin-panel-auth.md) | Admin panel auth (superseded by 007/008) |
+| [003](docs/adr/ADR-003-strava-oauth-and-webhook.md) | Strava OAuth and webhook, idempotency |
+| [004](docs/adr/ADR-004-gpx-parser-and-s3-layout.md) | GPX parser and S3 layout |
 | [005](docs/adr/ADR-005-tfc-to-gha-oidc-migration.md) | Terraform Cloud → GitHub Actions + OIDC |
-| [007](docs/adr/ADR-007-strava-oauth-start-page.md) | Strona startowa OAuth Stravy, model CSRF |
-| [008](docs/adr/ADR-008-plans-feature-and-cf-access.md) | Planowane wyjścia i Cloudflare Access |
+| [007](docs/adr/ADR-007-strava-oauth-start-page.md) | Strava OAuth start page, CSRF model |
+| [008](docs/adr/ADR-008-plans-feature-and-cf-access.md) | Planned trips and Cloudflare Access |
 
-## Struktura repo
+## Repository layout
 
 ```
 sprawdzamszlak/
 ├── apps/
 │   ├── web/               ← Next.js + Cloudflare Worker (worker/)
-│   └── api/               ← Lambdy: src/ (handler, strava/, admin/, auth/), scripts/ (CLI), seeds/
+│   └── api/               ← Lambdas: src/ (handler, strava/, admin/, auth/), scripts/ (CLI), seeds/
 ├── packages/
-│   └── shared/            ← typy wspólne dla web i api
+│   └── shared/            ← types shared by web and api
 ├── infrastructure/
-│   ├── terraform/         ← Lambda, DynamoDB, S3, IAM, CI/CD, budżety
-│   └── scripts/           ← instrukcje ręcznej konfiguracji (CF Access)
-├── scripts/               ← skrypty migracji z czasów dwóch repo (W1–W3, stan TFC → S3)
-├── docs/                  ← ADR-y, audyt, propozycja designu
-├── wrangler.jsonc         ← konfiguracja Workera
-├── PROJECT-STATUS.md      ← bieżący stan, otwarte zadania, przydatne komendy
-└── CLAUDE.md              ← konwencje i zasady pracy
+│   ├── terraform/         ← Lambda, DynamoDB, S3, IAM, CI/CD, budgets
+│   └── scripts/           ← manual setup instructions (CF Access)
+├── scripts/               ← migration scripts from the two-repo era (W1–W3, TFC → S3 state)
+├── docs/                  ← ADRs, audit, design proposal
+├── wrangler.jsonc         ← Worker config
+├── PROJECT-STATUS.md      ← current state, open tasks, useful commands
+└── CLAUDE.md              ← conventions and working rules
 ```
 
-Katalogi `sprawdzamszlak-frontend/` i `sprawdzamszlak-infrastructure/` to pozostałości po dawnych osobnych repo, które są dziś zarchiwizowane. Cały aktualny kod jest w `apps/` i `infrastructure/`.
+The `sprawdzamszlak-frontend/` and `sprawdzamszlak-infrastructure/` directories are leftovers from the old separate repos, which are now archived. All current code is in `apps/` and `infrastructure/`.
 
-## Uruchomienie lokalne
+## Running locally
 
-Wymagania: Node 22 (`.nvmrc`), pnpm przez corepack, AWS CLI z SSO dla skryptów operujących na produkcji.
+Requirements: Node 22 (`.nvmrc`), pnpm via corepack, AWS CLI with SSO for scripts that touch production.
 
 ```bash
 corepack enable
 pnpm install
-cp .env.example .env              # uzupełnij; w apps/web/.env.local ustaw NEXT_PUBLIC_USE_OSM=true
+cp .env.example .env              # fill it in; set NEXT_PUBLIC_USE_OSM=true in apps/web/.env.local
 
 pnpm dev:web                      # http://localhost:3000
-pnpm -F @sprawdzamszlak/api build # paczki Lambd → apps/api/dist
-pnpm -r test                      # vitest w api i web
+pnpm -F @sprawdzamszlak/api build # Lambda bundles → apps/api/dist
+pnpm -r test                      # vitest in api and web
 pnpm typecheck
 ```
 
-### Skrypty operacyjne (`apps/api`)
+### Operational scripts (`apps/api`)
 
-| Komenda | Co robi |
+| Command | What it does |
 |---|---|
-| `pnpm -F @sprawdzamszlak/api seed` | ładuje szczyty i inne dane z `seeds/` do DynamoDB |
-| `… import:osm-peaks`, `… polonize:peaks` | import szczytów z OSM i spolszczenie nazw |
-| `… strava:subscribe` / `strava:unsubscribe` | zakłada lub usuwa subskrypcję webhooka Stravy |
-| `… strava:replay <id>` / `strava:replay-many <id…>` | ponownie przetwarza aktywność syntetycznym webhookiem |
-| `… strava:drop-manual-seeds [--dry-run]` | usuwa trasy dodane ręcznie (nie ze Stravy) |
+| `pnpm -F @sprawdzamszlak/api seed` | loads peaks and other data from `seeds/` into DynamoDB |
+| `… import:osm-peaks`, `… polonize:peaks` | imports peaks from OSM and converts names to Polish |
+| `… strava:subscribe` / `strava:unsubscribe` | creates or removes the Strava webhook subscription |
+| `… strava:replay <id>` / `strava:replay-many <id…>` | reprocesses an activity with a synthetic webhook |
+| `… strava:drop-manual-seeds [--dry-run]` | removes routes that were added by hand (not from Strava) |
 
-Skrypty działają na produkcyjnym AWS, więc przed ich uruchomieniem trzeba się zalogować przez `aws sso login`.
+These scripts run against production AWS, so log in with `aws sso login` first.
 
-## Deploy i CI
+## Deployment and CI
 
-| Workflow | Kiedy | Co robi |
+| Workflow | When | What it does |
 |---|---|---|
-| `Test` | PR i `main` (zmiany w `apps/`, `packages/`) | vitest w api i web |
-| `Terraform` | PR: `plan`, `main`: `apply` | buduje Lambdy i aplikuje infrastrukturę przez AWS OIDC |
-| `Smoke` | codziennie 06:15 UTC | curl na stronę główną, `/api/`, `/api/routes` i stronę szczytu |
+| `Test` | PRs and `main` (changes in `apps/`, `packages/`) | vitest in api and web |
+| `Terraform` | PR: `plan`, `main`: `apply` | builds the Lambdas and applies infrastructure via AWS OIDC |
+| `Smoke` | daily at 06:15 UTC | curls the home page, `/api/`, `/api/routes` and a peak page |
 
-Frontend budują Workers Builds w Cloudflare: `main` trafia na produkcję, pozostałe branche na preview.
+The frontend is built by Cloudflare Workers Builds: `main` goes to production, other branches to preview.
 
-## Zasady
+## Rules
 
-Pełna lista jest w [`CLAUDE.md`](CLAUDE.md). W skrócie:
+The full list is in [`CLAUDE.md`](CLAUDE.md). In short:
 
-- Zmiany idą przez PR z brancha, nie bezpośrednio do `main`
-- Terraform aplikuje się tylko z CI, lokalnie uruchamiamy `plan`
-- Sekrety trzymamy w SSM, nigdy w repo ani w `.env` w gicie
-- Endpointy walidują wejście, webhook jest idempotentny, a frontend nigdy nie dotyka tokenów Stravy
+- Changes go through PRs from a branch, never straight to `main`
+- Terraform is applied only from CI; locally we run `plan`
+- Secrets live in SSM, never in the repo or in a committed `.env`
+- Endpoints validate input, the webhook is idempotent, and the frontend never touches Strava tokens
