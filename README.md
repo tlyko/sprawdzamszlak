@@ -1,140 +1,122 @@
-# Setup Claude Code dla sprawdzamszlak.pl
+# sprawdzamszlak.pl
 
-Kompletny zestaw subagentów + slash commands + ustawień dla rozwoju projektu w stanie:
-- Dwa osobne repo (`sprawdzamszlak-frontend` + `sprawdzamszlak-infrastructure`)
-- Stack AWS: Next.js + Lambda + DynamoDB + S3 + Terraform
-- Cel: monorepo, integracje Strava/Garmin, sensowny landing, security hardening
+Osobisty dziennik wyjść górskich, głównie w Tatrach: szlaki, wyjścia pozaszlakowe, skitury i wspinanie. Aktywności same trafiają ze Stravy na mapę, a strona zbiera je w kronikę ze statystykami, szczytami i postępem w Wielkiej Koronie Tatr.
 
-## Gdzie to zainstalować
+- Strona: [sprawdzamszlak.pl](https://sprawdzamszlak.pl)
+- Preview: `sprawdzamszlak.tlyko94.workers.dev`
 
-**Rekomendacja:** stwórz nowy katalog **nadrzędny** który będzie przyszłym monorepo:
+## Co jest na stronie
 
-```bash
-mkdir -p ~/repos/sprawdzamszlak
-cd ~/repos/sprawdzamszlak
+| Ścieżka | Zawartość |
+|---|---|
+| `/` | dziennik wyjść: lista z filtrami i grupami według roku obok mapy, kliknięcie przybliża trasę |
+| `/trasy/[slug]/` | szczegóły wyjścia: profil wysokości, zdjęcia ze Stravy, pobieranie GPX, udostępnianie |
+| `/szczyty/[slug]/` | strona szczytu (katalog ~320 szczytów z OSM i Wikipedii) z wyszukiwarką |
+| `/korona-tatr` | postęp w Wielkiej Koronie Tatr |
+| `/statystyki` | „rok w liczbach” |
+| `/plany/` | planowane wyjścia (lista publiczna) |
+| `/plany/admin/` | edycja planów, za Cloudflare Access |
+| `/strava`, `/strava/connected` | podłączenie konta Stravy |
+| `/o-projekcie` | o projekcie |
 
-# Rozpakuj setup tutaj:
-tar -xzf sprawdzamszlak-claude-setup.tar.gz
+## Architektura
 
-# Dodaj symlinki do istniejących repo (tymczasowo):
-ln -s ../sprawdzamszlak-frontend sprawdzamszlak-frontend
-ln -s ../sprawdzamszlak-infrastructure sprawdzamszlak-infrastructure
-# (dostosuj ścieżki do swojego setupu)
-
-# Inicjalizuj git (do późniejszej migracji)
-git init
-git add CLAUDE.md README.md .claude/
-git commit -m "chore: initial claude code setup"
-
-# Odpal Claude Code
-claude
+```
+ Przeglądarka
+   └─ sprawdzamszlak.pl ── Cloudflare Worker ─┬─ statyczny eksport Next.js (assets)
+                                              └─ /api/* ──► AWS API Gateway ──► Lambda (Node, TS) ──┬─► DynamoDB
+                                                                                                    ├─► S3 (GeoJSON tras)
+ Strava ── webhook ──► API Gateway ──► Lambda ──► DynamoDB (events) ── Stream ──► Lambda fetcher ────┘
 ```
 
-Claude automatycznie wczyta `CLAUDE.md`, agentów i commands. Auditor będzie mógł patrzeć na oba repo przez symlinki.
+- **Frontend:** Next.js 16 (`output: 'export'`), React, Leaflet z kafelkami Stadia Maps (OSM jako fallback)
+- **Edge:** Cloudflare Worker (`apps/web/worker/index.ts`) serwuje statyczne pliki, przekazuje `/api/*` do AWS i podstawia shelle dla dynamicznych ścieżek `/trasy/*` i `/szczyty/*`
+- **Backend:** dwie Lambdy w TypeScript:
+  - `sprawdzamszlak-app` obsługuje API, OAuth i webhook Stravy
+  - `sprawdzamszlak-app-fetcher` jest wyzwalana przez DynamoDB Stream, pobiera aktywność i streamy ze Stravy, buduje GeoJSON i zapisuje go do S3 i DynamoDB
+- **Dane:** DynamoDB (szczyty, trasy, plany, stany OAuth, zdarzenia webhooka z TTL), S3 (`trails/strava_{id}.geojson`)
+- **Auth panelu:** Cloudflare Access (magic link), a Lambda dodatkowo weryfikuje JWT z CF Access
+- **Sekrety:** SSM Parameter Store (tokeny i klucze Stravy, konfiguracja CF Access)
+- **IaC:** Terraform z backendem S3 i DynamoDB, apply przez GitHub Actions z AWS OIDC
+- **Koszty:** AWS Budget $1/mies. i Cost Anomaly Detection
 
-**Alternatywnie:** wrzuć `CLAUDE.md` + `.claude/` do `sprawdzamszlak-frontend` i pracuj stamtąd, podając audytorowi ścieżkę do drugiego repo.
+Importowane są tylko aktywności typu `Hike`, `Walk`, `RockClimbing`, `BackcountrySki` i `AlpineSki`. Heurystyka przypisuje każdej trasie jeden z pięciu typów: szlak, pozaszlakowa, spacer, skitur, wspinaczka.
 
-## Zawartość paczki
+Decyzje architektoniczne są w [`docs/adr/`](docs/adr/):
+
+| ADR | Temat |
+|---|---|
+| [001](docs/adr/ADR-001-stack-and-monorepo.md) | Stack i monorepo: zostajemy na AWS, TypeScript, pnpm workspaces |
+| [002](docs/adr/ADR-002-admin-panel-auth.md) | Auth panelu admina (zastąpiony przez 007/008) |
+| [003](docs/adr/ADR-003-strava-oauth-and-webhook.md) | OAuth i webhook Stravy, idempotencja |
+| [004](docs/adr/ADR-004-gpx-parser-and-s3-layout.md) | Parser GPX i układ S3 |
+| [005](docs/adr/ADR-005-tfc-to-gha-oidc-migration.md) | Terraform Cloud → GitHub Actions + OIDC |
+| [007](docs/adr/ADR-007-strava-oauth-start-page.md) | Strona startowa OAuth Stravy, model CSRF |
+| [008](docs/adr/ADR-008-plans-feature-and-cf-access.md) | Planowane wyjścia i Cloudflare Access |
+
+## Struktura repo
 
 ```
 sprawdzamszlak/
-├── CLAUDE.md                    ← główny kontekst (przeczytaj!)
-├── README.md                    ← ten plik
-└── .claude/
-    ├── settings.json            ← permissions
-    ├── agents/
-    │   ├── auditor.md           ← read-only audyt obu repo
-    │   ├── architect.md         ← decyzje stack/struktura, ADR
-    │   ├── aws-infra.md         ← Terraform, Lambda, DDB, IAM
-    │   ├── security.md          ← OAuth, sekrety, IAM, CSP
-    │   ├── frontend-designer.md ← UI, landing, mapa
-    │   ├── integrator.md        ← Strava/Garmin
-    │   └── reviewer.md          ← review przed commitem
-    └── commands/
-        ├── audyt.md             ← /audyt
-        ├── migracja-monorepo.md ← /migracja-monorepo
-        ├── security-check.md    ← /security-check
-        ├── nowa-funkcja.md      ← /nowa-funkcja
-        └── release.md           ← /release
+├── apps/
+│   ├── web/               ← Next.js + Cloudflare Worker (worker/)
+│   └── api/               ← Lambdy: src/ (handler, strava/, admin/, auth/), scripts/ (CLI), seeds/
+├── packages/
+│   └── shared/            ← typy wspólne dla web i api
+├── infrastructure/
+│   ├── terraform/         ← Lambda, DynamoDB, S3, IAM, CI/CD, budżety
+│   └── scripts/           ← instrukcje ręcznej konfiguracji (CF Access)
+├── scripts/               ← skrypty migracji z czasów dwóch repo (W1–W3, stan TFC → S3)
+├── docs/                  ← ADR-y, audyt, propozycja designu
+├── wrangler.jsonc         ← konfiguracja Workera
+├── PROJECT-STATUS.md      ← bieżący stan, otwarte zadania, przydatne komendy
+└── CLAUDE.md              ← konwencje i zasady pracy
 ```
 
-## Sugerowana ścieżka (zgodna z Twoim rankingiem priorytetów)
+Katalogi `sprawdzamszlak-frontend/` i `sprawdzamszlak-infrastructure/` to pozostałości po dawnych osobnych repo, które są dziś zarchiwizowane. Cały aktualny kod jest w `apps/` i `infrastructure/`.
 
-### Krok 1: Audyt
-```
-/audyt
-```
-`auditor` przejdzie przez **oba repo**, da raport. Niczego nie zmieni. Dostaniesz mapę tego co masz + ranking ryzyk.
+## Uruchomienie lokalne
 
-### Krok 2: Architektura — pierwszy ADR
-```
-@architect Na podstawie raportu audytora napisz ADR 0001 porównujący opcje stacku (zostajemy na AWS / migracja na VPS+Postgres / hybryda) z konkretnymi liczbami (koszty, czas migracji) i rekomendacją.
-```
-Dostajesz konkretną decyzję poparta liczbami. Akceptujesz lub kwestionujesz.
+Wymagania: Node 22 (`.nvmrc`), pnpm przez corepack, AWS CLI z SSO dla skryptów operujących na produkcji.
 
-### Krok 3: Security pass (na obecnym stanie)
-```
-/security-check
-```
-Niezależnie od decyzji o stacku — naprawiamy 🚨 critical *teraz*. Sekrety w git history, public S3 buckets, IAM `*` itd.
+```bash
+corepack enable
+pnpm install
+cp .env.example .env              # uzupełnij; w apps/web/.env.local ustaw NEXT_PUBLIC_USE_OSM=true
 
-### Krok 4: Migracja do monorepo
-```
-/migracja-monorepo
-```
-Wieloetapowy workflow z `architect` + `aws-infra`. Zachowuje historię git, wydziela kod Lambdy z Terraforma, ustawia `apps/` + `packages/` + `infrastructure/`.
-
-### Krok 5+: Funkcje
-```
-/nowa-funkcja Landing page z hero-mapą i scroll storytellingiem
-/nowa-funkcja OAuth flow Stravy + zapis tokenów (encrypted)
-/nowa-funkcja Webhook handler Stravy z idempotencją (SQS lub async invoke)
+pnpm dev:web                      # http://localhost:3000
+pnpm -F @sprawdzamszlak/api build # paczki Lambd → apps/api/dist
+pnpm -r test                      # vitest w api i web
+pnpm typecheck
 ```
 
-## Wołanie agentów ręcznie
+### Skrypty operacyjne (`apps/api`)
 
-Slash commands automatyzują workflow, ale możesz wołać agentów bezpośrednio:
+| Komenda | Co robi |
+|---|---|
+| `pnpm -F @sprawdzamszlak/api seed` | ładuje szczyty i inne dane z `seeds/` do DynamoDB |
+| `… import:osm-peaks`, `… polonize:peaks` | import szczytów z OSM i spolszczenie nazw |
+| `… strava:subscribe` / `strava:unsubscribe` | zakłada lub usuwa subskrypcję webhooka Stravy |
+| `… strava:replay <id>` / `strava:replay-many <id…>` | ponownie przetwarza aktywność syntetycznym webhookiem |
+| `… strava:drop-manual-seeds [--dry-run]` | usuwa trasy dodane ręcznie (nie ze Stravy) |
 
-```
-@auditor zweryfikuj czy moduł integrations/strava jest spójny ze schematem DDB
-@frontend-designer pokaż 2 koncepcje hero sekcji landingu, jedna z fly-to po Tatrach
-@aws-infra zaprojektuj single-table design w DynamoDB dla activities + tracks + tokens
-@integrator zaimplementuj refresh token flow z rotacją
-@security review tego endpointu /api/webhooks/strava + powiązanych IAM policies
-@reviewer przeczytaj diff i powiedz czy mogę commitować
-```
+Skrypty działają na produkcyjnym AWS, więc przed ich uruchomieniem trzeba się zalogować przez `aws sso login`.
 
-## Co zostało celowo pominięte
+## Deploy i CI
 
-- **CI/CD config** — zrobimy gdy `architect` zdecyduje gdzie hostujemy frontend i jak deployujemy backend
-- **Testing setup** — zależy od decyzji o frameworku (Vitest? Playwright?)
-- **Sentry / monitoring** — przed pierwszym publicznym deployem
+| Workflow | Kiedy | Co robi |
+|---|---|---|
+| `Test` | PR i `main` (zmiany w `apps/`, `packages/`) | vitest w api i web |
+| `Terraform` | PR: `plan`, `main`: `apply` | buduje Lambdy i aplikuje infrastrukturę przez AWS OIDC |
+| `Smoke` | codziennie 06:15 UTC | curl na stronę główną, `/api/`, `/api/routes` i stronę szczytu |
 
-To trafi do `architect` jako część planu architektonicznego.
+Frontend budują Workers Builds w Cloudflare: `main` trafia na produkcję, pozostałe branche na preview.
 
-## Modyfikacje
+## Zasady
 
-CLAUDE.md i agenty są **żywymi dokumentami**. Edytuj jak projekt ewoluuje:
-- Nowe konwencje? → `CLAUDE.md`
-- Subagent powinien wiedzieć o nowym wzorcu? → odpowiedni `.md` w `agents/`
-- Nowy częsty workflow? → nowy slash command
+Pełna lista jest w [`CLAUDE.md`](CLAUDE.md). W skrócie:
 
-## Uwagi o sekretach i Terraformie
-
-`.claude/settings.json` blokuje:
-- Czytanie/edycję `.env*`, `*.tfvars`, `terraform.tfstate*`
-- `terraform apply -auto-approve` (musi być świadomy)
-- `git push --force`
-- `rm -rf /`, fetch | sh patterns
-
-Pyta przed:
-- `terraform apply` (bez `-auto-approve`)
-- `aws *` CLI commands
-- `git push`, `merge`, `reset`
-- `WebFetch`
-
-Pozwala bez pytania:
-- `terraform plan`, `validate`, `fmt`, `init`
-- Wszystkie operacje read-only na git i AWS state
-
-To są sensowne defaulty, ale zmień jak chcesz.
+- Zmiany idą przez PR z brancha, nie bezpośrednio do `main`
+- Terraform aplikuje się tylko z CI, lokalnie uruchamiamy `plan`
+- Sekrety trzymamy w SSM, nigdy w repo ani w `.env` w gicie
+- Endpointy walidują wejście, webhook jest idempotentny, a frontend nigdy nie dotyka tokenów Stravy
